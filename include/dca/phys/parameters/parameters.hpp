@@ -103,7 +103,7 @@ public:
 
   constexpr static int bands = Model::lattice_type::BANDS;
 
-  using MC_measurement_scalar_type = config::AccumulationOptions::MCAccumulationScalar;
+  using TP_measurement_scalar_type = config::AccumulationOptions::TPAccumulationScalar;
 
   Parameters(const std::string& version_stamp, concurrency_type& concurrency);
 
@@ -192,7 +192,7 @@ void Parameters<Concurrency, Threading, Profiler, Model, RandomNumberGenerator, 
 
   domains::DCA_iteration_domain::write(writer);
 
-  if (FourPointParameters<Model::DIMENSION>::accumulateG4()) {
+  if (FourPointParameters<Model::DIMENSION>::isAccumulatingG4()) {
     domains::vertex_time_domain<domains::SP_TIME_DOMAIN>::write(writer);
     domains::vertex_time_domain<domains::TP_TIME_DOMAIN>::write(writer);
     domains::vertex_time_domain<domains::SP_TIME_DOMAIN_POSITIVE>::write(writer);

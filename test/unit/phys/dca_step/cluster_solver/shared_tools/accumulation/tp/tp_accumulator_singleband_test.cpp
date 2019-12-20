@@ -67,7 +67,7 @@ TEST_F(TpAccumulatorSinglebandTest, Accumulate) {
   for (const dca::phys::FourPointType type :
        {dca::phys::PARTICLE_HOLE_TRANSVERSE, dca::phys::PARTICLE_HOLE_MAGNETIC,
         dca::phys::PARTICLE_HOLE_CHARGE, dca::phys::PARTICLE_PARTICLE_UP_DOWN}) {
-    parameters_.set_four_point_type(type);
+    parameters_.set_four_point_channel(type);
 
     dca::phys::solver::accumulator::TpAccumulator<Parameters> accumulator(
         data_->G0_k_w_cluster_excluded, parameters_);
@@ -76,7 +76,7 @@ TEST_F(TpAccumulatorSinglebandTest, Accumulate) {
     accumulator.accumulate(M, config, sign);
     accumulator.finalize();
 
-    const std::vector<Data::TpGreensFunction>& G4 = accumulator.get_sign_times_G4();
+    const auto& G4 = accumulator.get_sign_times_G4();
 
     if (update_baseline) {
       writer.execute(func_names[type], G4[0]);
