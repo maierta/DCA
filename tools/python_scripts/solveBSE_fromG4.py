@@ -7,7 +7,7 @@ import os
 from matplotlib.pyplot import *
 from plotnine import *
 import pandas as p
-import myggplottheme
+# import myggplottheme
 
 
 
@@ -66,22 +66,30 @@ class BSE:
             self.calcSCClusterSus()
             self.calcPd0(wCutOff=1)
 
-            self.Pd0 = self.calcProjectionsKwn(self.chi0M,self.dwave,0)/(self.invT*self.Nc)
-            print("\nPd0(T) = ",self.Pd0)
-            self.Vd = self.calcProjectionsKwn(self.GammaM,self.dwave,2)
-            print("Vd(T)  = ",self.Vd)
-            # Pd0 = self.calcProjections(self.chi0M,self.dwave)
-            prod=self.Vd*self.Pd0
-            print("Vd(T)*Pd0(T) = ",prod)
+            # # self.Pd0 = self.calcPd0_LorentzianCutoff()
+            # self.Pd0 = self.calcProjectionsKwn(self.chi0M,self.dwave,0)/(self.invT*self.Nc)
+            # print("\nPd0(T) = ",self.Pd0)
+            # self.Vd = self.calcProjectionsKwn(self.GammaM,self.dwave,2)
+            # print("Vd(T)  = ",self.Vd)
+            # # Pd0 = self.calcProjections(self.chi0M,self.dwave)
+            # prod=self.Vd*self.Pd0
+            # print("Vd(T)*Pd0(T) = ",prod)
 
-            print("PMd(T)  = ",self.calcProjectionsKwn(self.pm,self.dwave,1))
+            # print("PMd(T)  = ",self.calcProjectionsKwn(self.pm,self.dwave,1))
 
-            print("\nPpp0(T) = ",self.calcProjections(self.chi0M,self.pxpwave)/(self.invT*self.Nc))
-            print("Vpp(T)  = ",self.calcProjections(self.GammaM,self.pxpwave))
-            print("PMpp(T)  = ",self.calcProjections(self.pm,self.pxpwave))
-            self.Vd0 = self.calcProjections(self.GammaM,self.dwave,wCutOff=0)/self.Nc**2
-            print("\nVd_piT_piT = ", self.Vd0)
-            print("\n")
+            # print("\nPpp0(T) = ",self.calcProjections(self.chi0M,self.pxpwave)/(self.invT*self.Nc))
+            # print("Vpp(T)  = ",self.calcProjections(self.GammaM,self.pxpwave))
+            # print("PMpp(T)  = ",self.calcProjections(self.pm,self.pxpwave))
+            # self.Vd0 = self.calcProjections(self.GammaM,self.dwave,wCutOff=0)/self.Nc
+            # print("\nVd0 (piT,piT) = ", self.Vd0)
+            # print("Vd0(T)*Pd0(T) = ",self.Vd0*self.Pd0)
+            # print("\n")
+
+            self.calcPd0andVd()
+            print("Vd01, Pd01 :",self.Vd01,self.Pd01)
+            print("Vd02, Pd02 :",self.Vd02,self.Pd02)
+            print("Vd03, Pd03 :",self.Vd03,self.Pd03)
+
 
             if self.found_d: self.calcPdFromEigenFull(self.ind_d)
 
@@ -652,6 +660,41 @@ class BSE:
         matrixProjected = real(np.dot(ff,np.dot(matrix,ff)))/np.inner(ff,ff)**normPower
         return matrixProjected
 
+    def calcProjection(self,matrix,fofKwn):
+        matrixProjected = real(np.dot(fofKwn,np.dot(matrix,fofKwn)))
+        return matrixProjected
+
+
+    def calcPd0andVd(self):
+        # Calculate various separable approximations for lambda_d ~ Vd * Pd0 
+
+        # 1. $P_{d,0}  = \frac{T}{N_c}\sum_k g^2(k) G(k)G(-k)$ with $g(k) = (\cos k_x-\cos k_y)\frac{\pi^2T^2+\omega_c^2}{\omega_n^2+\omega_c^2}$.
+        gkd = cos(self.Kvecs[:,0]) - cos(self.Kvecs[:,1])
+        fwn = ((np.pi*self.temp)**2+self.wCutOff**2)/(self.wnSet**2 + self.wCutOff**2)
+        fg = np.outer(fwn,gkd).reshape(self.NwG4*self.Nc)
+
+        self.Vd01 = real( self.calcProjection(self.GammaM,fg)) / np.inner(fg,fg)**2
+        self.Pd01 = real( self.calcProjection(self.chi0M,fg) )/ (self.invT*self.Nc)
+
+        if (self.found_d):
+
+            # 2. $P_{d,02} = \frac{T}{N_c}\sum_k \phi_d^2(k) G(k)G(-k)$ with $\phi_d(k)$ the d-wave eigenvector.  
+            fg = self.evecs[:,:,self.ind_d].reshape(self.NwG4*self.Nc) / self.evecs[:,:,self.ind_d].max()
+
+            self.Vd02 = real( self.calcProjection(self.GammaM,fg)) / np.inner(fg,fg)**2
+            self.Pd02 = real( self.calcProjection(self.chi0M,fg) )/ (self.invT*self.Nc)
+
+            # 3. Now use phid(K,piT) for k-dependence and Lorentzian for frequency dependence
+            gkd = self.evecs[int(self.NwG4/2),:,self.ind_d] / self.evecs[int(self.NwG4/2),:,self.ind_d].max()
+            fwn = ((np.pi*self.temp)**2+self.wCutOff**2)/(self.wnSet**2 + self.wCutOff**2)
+            fg = np.outer(fwn,gkd).reshape(self.NwG4*self.Nc)
+
+            self.Vd03 = real(self.calcProjection(self.GammaM,fg)) / np.inner(fg,fg)**2
+            self.Pd03 = real(self.calcProjection(self.chi0M,fg) )/ (self.invT*self.Nc)
+
+
+
+
     def calcProjections(self,matrix,formFactor,wCutOff=1):
         nCutOff = ceil(wCutOff*self.invT/(2.*pi) - 0.5)
         nCutOff = int(max(nCutOff,1))
@@ -665,9 +708,19 @@ class BSE:
         else: #only take piT,piT element
             ind0 = int(self.NwG4/2)
             matrix00 = matrix.reshape(self.NwG4,self.Nc,self.NwG4,self.Nc)[ind0,:,ind0,:]
+            # mm = sum(sum(matrix00,axis=0),axis=1)/4.0
             matrixProjected = real(np.dot(gk,np.dot(matrix00,gk)))
+            # matrixProjected = real(np.dot(gk,np.dot(mm,gk)))
         return matrixProjected
 
+
+    def calcPd0_LorentzianCutoff(self):
+        # P_d0(T,x)= T/N Sum (coskx-cosky)^2G(k,wn)G(-k,-wn) [(piT)^2+wc^2]/[wn^2+wc^2]
+        gk = self.dwave(self.Kvecs[:,0],self.Kvecs[:,1])
+        fwn = ((np.pi*self.temp)**2+self.wCutOff**2)/(self.wnSet**2 + self.wCutOff**2)
+        ff = np.outer(fwn,gk**2).reshape(self.NwG4*self.Nc)
+        chi0Projected = real(np.dot(self.chi0.reshape(self.NwG4*self.Nc),ff))/(self.invT*self.Nc)
+        return chi0Projected
 
     def calcPd0(self,wCutOff=0.5714):
         nCutOff = ceil(wCutOff*self.invT/(2.*pi) - 0.5)
@@ -679,21 +732,20 @@ class BSE:
         # cc = 2.0*real(sum(self.chi0[self.iwG40:self.iwG40+nCutOff,:],axis=0))
         # self.Pd0 = np.dot(gkd**2, cc)/(self.invT*self.Nc)/np.inner(gkd,gkd)
         fg = np.outer(fwn,gkd).reshape(self.NwG4*self.Nc)
-        self.Pd0 = real(np.dot(fg**2, self.chi0.reshape(self.NwG4*self.Nc))/(self.invT*self.Nc)/np.inner(gkd,gkd))
-        print("Pd0(T) with cutOff=",self.Pd0)
+        self.Pd0a = real(np.dot(fg**2, self.chi0.reshape(self.NwG4*self.Nc))/(self.invT*self.Nc))
+        print("Pd0(T) with cutOff=",self.Pd0a)
         # Now compare this with projection onto d-wave eigenvector
         if self.found_d:
             phid = self.evecs[:,:,self.ind_d]
-            # Set phid(K=(pi,0),piT) = 1
-            phid = phid / phid.max()
+            phid /= phid.max()
             self.phid = phid.reshape(self.NwG4*self.Nc)
             chi0pp = self.chi0.reshape(self.NwG4*self.Nc)
-            self.Pd02 = np.dot(self.phid**2,chi0pp) / (self.invT*self.Nc)
-            print("Pd0(T) from projection onto eigenvector=",real(self.Pd02))
+            self.Pd0b = real(np.dot(self.phid**2,chi0pp) / (self.invT*self.Nc) )
+            print("Pd0(T) from projection onto eigenvector=",self.Pd0b)
             # Projection onto phid * fg
             self.fg = fg/fg.max()
-            self.Pd0a = np.dot(abs(self.phid*self.fg),chi0pp) / (self.invT*self.Nc)
-            print("Pd0(T) from projection onto eigenvector * fg =",real(self.Pd0a))
+            self.Pd0c = np.dot(abs(self.phid*self.fg),chi0pp) / (self.invT*self.Nc)
+            print("Pd0(T) from projection onto eigenvector * fg =",real(self.Pd0c))
 
             # Since phid at low T becomes noisy at large wn, lets cut-off phid(k,wn) for |wn| > wc 
             self.phidFixed = np.zeros_like(self.evecs[:,:,self.ind_d])
@@ -703,13 +755,18 @@ class BSE:
             norm = np.dot(phidF,phidF)
             self.phidFixed /= sqrt(norm)
             phidF = self.phidFixed.reshape(self.NwG4*self.Nc)
-            self.Pd04 = np.dot(phidF**2,chi0pp) /(self.invT*self.Nc)
-            print("Pd0(T) from projection onto fixed eigenvector=",real(self.Pd04))
+            self.Pd0d = real(np.dot(phidF**2,chi0pp) /(self.invT*self.Nc))
+            print("Pd0(T) from projection onto fixed eigenvector=",self.Pd0d)
             # Now use self.chi0D2
             cc = 2.0*real(sum(self.chi0D2[self.iwG40:self.iwG40+nCutOff,:]))
-            self.Pd03 = cc/(self.invT*self.Nc)/self.gkdNorm
-            print("Pd0(T) with lattice gkd and wn cutOff=",real(self.Pd03))
-                        
+            self.Pd0e = cc/(self.invT*self.Nc)/self.gkdNorm
+            print("Pd0(T) with lattice gkd and wn cutOff=",real(self.Pd0e))
+            # Now use phid(K,piT) for k-dependence and Lorentzian for frequency dependence
+            gkd = phid[int(self.NwG4/2),:]
+            fg = np.outer(fwn,gkd).reshape(self.NwG4*self.Nc)
+            self.Pd05 = real(np.dot(fg**2, self.chi0.reshape(self.NwG4*self.Nc)))/(self.invT*self.Nc)
+
+
 
     # def calcChi0Tilde(self,evec):
     #     gk = self.dwave(self.Kvecs[:,0],self.Kvecs[:,1])
