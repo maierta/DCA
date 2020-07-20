@@ -426,6 +426,7 @@ class BSE:
 
             #Now find d-wave eigenvalue
             gk = cos(self.Kvecs[:,0]) - cos(self.Kvecs[:,1]) # dwave form factor
+            gk2 = cos(2.*self.Kvecs[:,0]) - cos(2.*self.Kvecs[:,1]) # dwave nnn form factor
             self.found_d=False
             for ia in range(0,nt):
                 r1 = dot(gk,self.evecs2[int(self.NwG4/2),:,ia]) * sum(self.evecs2[:,self.iKPi0,ia])
@@ -433,6 +434,10 @@ class BSE:
                     self.lambdad = self.lambdas2[ia]
                     self.ind_d = ia
                     self.found_d=True
+                    r1 = dot(gk,self.evecs2[int(self.NwG4/2),:,ia])
+                    r2 = dot(gk2,self.evecs2[int(self.NwG4/2),:,ia])
+                    print("d1 = ", r1)
+                    print("d2 = ", r2)
                     break
             if self.found_d: print("d-wave eigenvalue",self.lambdad)
 
