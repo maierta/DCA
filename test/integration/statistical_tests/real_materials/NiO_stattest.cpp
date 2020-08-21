@@ -79,12 +79,12 @@ TEST(Ni0, GS) {
   parameters.update_domains();
 
   // Perform the same number of measurements per rank.
-  const int meas_per_process = parameters.get_measurements();
+  const int meas_per_process = parameters.get_measurements().back();
   parameters.set_measurements(meas_per_process * dca_test_env->concurrency.number_of_processors());
 
   Data data(parameters);
   // initialize H only. G0 is read from file afterwards.
-  data.initialize_H_0_and_H_i();
+  data.initializeH0_and_H_i();
 
   // Read and broadcast the rest of the initialization from full DCA results.
   if (id == 0) {

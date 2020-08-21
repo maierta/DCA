@@ -27,6 +27,7 @@
 #include "dca/phys/domains/time_and_frequency/time_domain_left_oriented.hpp"
 
 #ifdef DCA_HAVE_CUDA
+#include "dca/linalg/util/cuda_event.hpp"
 #include "dca/phys/dca_step/cluster_solver/ctaux/walker/tools/g0_interpolation/g0_interpolation_kernels.hpp"
 #endif
 
@@ -37,7 +38,7 @@ namespace ctaux {
 // dca::phys::solver::ctaux::
 
 // Empty class template
-template <dca::linalg::DeviceType device_t, typename parameters_type>
+template <dca::linalg::DeviceType device_t, typename parameters_type, typename Real>
 class G0_INTERPOLATION {};
 
 // Specialization for CPU

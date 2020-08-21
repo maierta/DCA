@@ -203,8 +203,8 @@ void OutputParameters::readWrite(ReaderOrWriter& reader_or_writer) {
   }
 }
 
-}  // params
-}  // phys
-}  // dca
+}  // namespace params
+}  // namespace phys
+}  // namespace dca
 
 #endif  // DCA_PHYS_PARAMETERS_OUTPUT_PARAMETERS_HPP

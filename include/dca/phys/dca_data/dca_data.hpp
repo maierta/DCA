@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 
+#include "dca/distribution/dist_types.hpp"
 #include "dca/function/domains.hpp"
 #include "dca/function/function.hpp"
 #include "dca/function/util/real_complex_conversion.hpp"
@@ -112,7 +113,7 @@ public:
   void write(Writer& reader);
 
   void initialize();
-  void initialize_H_0_and_H_i();
+  void initializeH0_and_H_i();
   void initialize_G0();
   void initialize_Sigma();
 
@@ -123,7 +124,7 @@ public:
 
 private:
   Parameters& parameters_;
-  Concurrency& concurrency_;
+  const Concurrency& concurrency_;
 
 public:
   func::function<int, NuNuDmn> H_symmetry;
@@ -232,6 +233,11 @@ public:  // Optional members getters.
               "non_density_interaction"));
     return *non_density_interactions_;
   }
+  const auto& get_non_density_interactions() const {
+    assert(non_density_interactions_);
+    return *non_density_interactions_;
+  }
+
   bool has_non_density_interactions() const {
     return (bool)non_density_interactions_;
   }
@@ -247,7 +253,7 @@ private:  // Optional members.
 };
 
 template <class Parameters>
-DcaData<Parameters>::DcaData(Parameters& parameters_ref)
+DcaData<Parameters>::DcaData(/*const*/ Parameters& parameters_ref)
     : parameters_(parameters_ref),
       concurrency_(parameters_.get_concurrency()),
 
@@ -302,9 +308,11 @@ DcaData<Parameters>::DcaData(Parameters& parameters_ref)
   // are expensive).
   for (auto channel : parameters_.get_four_point_channels()) {
     // Allocate memory for G4.
-    G4_.emplace_back("G4_" + toString(channel));
+    // temporarily we pass a flag here because the concept of distribution,
+    // has not been pushed down into "function"
+    G4_.emplace_back("G4_" + toString(channel), parameters_.get_g4_distribution());
     // Allocate memory for error on G4.
-    G4_err_.emplace_back("G4_" + toString(channel) + "_err");
+    G4_err_.emplace_back("G4_" + toString(channel) + "_err", parameters_.get_g4_distribution());
   }
 }
 
@@ -445,7 +453,10 @@ void DcaData<Parameters>::write(Writer& writer) {
   writer.execute(Sigma_err_);
 
   if (parameters_.dump_lattice_self_energy()) {
-    writer.execute(Sigma_lattice);
+    if (parameters_.do_dca_plus())
+      writer.execute(Sigma_lattice);
+    else if (parameters_.doPostInterpolation())
+      writer.execute(Sigma_lattice_interpolated);
   }
 
   if (parameters_.dump_cluster_Greens_functions()) {
@@ -467,7 +478,10 @@ void DcaData<Parameters>::write(Writer& writer) {
     writer.execute(G0_r_t_cluster_excluded);
   }
 
-  if (parameters_.isAccumulatingG4()) {
+  // When distributed_g4_enabled, one should assume G4 size is fairly large and then should not
+  // accumulate G4 into one node and thus cannot write it out
+  // Until ADIOS2 is added
+  if (parameters_.isAccumulatingG4() && parameters_.get_g4_distribution() == DistType::NONE) {
     if (!(parameters_.dump_cluster_Greens_functions())) {
       writer.execute(G_k_w);
       writer.execute(G_k_w_err_);
@@ -487,18 +501,18 @@ void DcaData<Parameters>::write(Writer& writer) {
 
 template <class Parameters>
 void DcaData<Parameters>::initialize() {
-  initialize_H_0_and_H_i();
+  initializeH0_and_H_i();
   initialize_G0();
 }
 
 template <class Parameters>
-void DcaData<Parameters>::initialize_H_0_and_H_i() {
+void DcaData<Parameters>::initializeH0_and_H_i() {
   util::Timer("H_0 and H_int initialization", concurrency_.id() == concurrency_.first());
 
-  Parameters::model_type::initialize_H_0(parameters_, H_DCA);
-  Parameters::model_type::initialize_H_0(parameters_, H_HOST);
+  Parameters::model_type::initializeH0(parameters_, H_DCA);
+  Parameters::model_type::initializeH0(parameters_, H_HOST);
 
-  Parameters::model_type::initialize_H_interaction(H_interactions, parameters_);
+  Parameters::model_type::initializeHInteraction(H_interactions, parameters_);
 
   // Check symmetry of H_interactions.
   const int r0 = RClusterDmn::parameter_type::origin_index();
@@ -512,7 +526,7 @@ void DcaData<Parameters>::initialize_H_0_and_H_i() {
       }
   }
 
-  if (models::has_non_density_interaction<Lattice>::value) {
+  if constexpr (models::has_non_density_interaction<Lattice>) {
     models::initializeNonDensityInteraction<Lattice>(get_non_density_interactions(), parameters_);
   }
 
@@ -530,19 +544,19 @@ void DcaData<Parameters>::initialize_G0() {
   // Compute G0_k_w.
   compute_G0_k_w(H_DCA, parameters_.get_chemical_potential(),
                  parameters_.get_coarsegraining_threads(), G0_k_w);
-  symmetrize::execute(G0_k_w, H_symmetry, true);
+  symmetrize::execute<Lattice>(G0_k_w, H_symmetry, true);
 
   // Compute G0_k_t.
   compute_G0_k_t(H_DCA, parameters_.get_chemical_potential(), parameters_.get_beta(), G0_k_t);
-  symmetrize::execute(G0_k_t, H_symmetry, true);
+  symmetrize::execute<Lattice>(G0_k_t, H_symmetry, true);
 
   // Compute G0_r_w.
   math::transform::FunctionTransform<KClusterDmn, RClusterDmn>::execute(G0_k_w, G0_r_w);
-  symmetrize::execute(G0_r_w, H_symmetry, true);
+  symmetrize::execute<Lattice>(G0_r_w, H_symmetry, true);
 
   // Compute G0_r_t.
   math::transform::FunctionTransform<KClusterDmn, RClusterDmn>::execute(G0_k_t, G0_r_t);
-  symmetrize::execute(G0_r_t, H_symmetry, true);
+  symmetrize::execute<Lattice>(G0_r_t, H_symmetry, true);
 
   // Initialize the cluster excluded Green's functions with the corresponding free Green's
   // functions.

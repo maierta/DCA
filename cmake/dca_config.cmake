@@ -1,5 +1,6 @@
 ################################################################################
 # Author: Urs R. Haehner (haehneru@itp.phys.ethz.ch)
+#         Giovanni Badlduzzi (gbalduzz@itp.phys.ethz.ch)
 #
 # Build options for DCA++.
 
@@ -53,8 +54,8 @@ endif()
 # TODO: Add more point groups and lattices.
 
 # Point group
-set(DCA_POINT_GROUP "D4" CACHE STRING "Point group symmetry, options are: C6 | D4.")
-set_property(CACHE DCA_POINT_GROUP PROPERTY STRINGS C6 D4)
+set(DCA_POINT_GROUP "D4" CACHE STRING "Point group symmetry, options are: C6 | D4 | no_symmetry<2>.")
+set_property(CACHE DCA_POINT_GROUP PROPERTY STRINGS C6 D4 no_symmetry<2>)
 
 if (DCA_POINT_GROUP STREQUAL "C6")
   set(DCA_POINT_GROUP_INCLUDE
@@ -63,14 +64,18 @@ if (DCA_POINT_GROUP STREQUAL "C6")
 elseif (DCA_POINT_GROUP STREQUAL "D4")
   set(DCA_POINT_GROUP_INCLUDE "dca/phys/domains/cluster/symmetries/point_groups/2d/2d_square.hpp")
 
+elseif (DCA_POINT_GROUP STREQUAL "no_symmetry<2>")
+  set(DCA_POINT_GROUP_INCLUDE "dca/phys/domains/cluster/symmetries/point_groups/no_symmetry.hpp")
+
 else()
   message(FATAL_ERROR "Please set DCA_POINT_GROUP to a valid option: C6 | D4.")
 endif()
 
 # Lattice type
-set(DCA_LATTICE "square" CACHE STRING
-    "Lattice type, options are: bilayer | square | triangular | twoband_chain | singleband_chain | twoorbital.")
-set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular twoband_chain singleband_chain twoorbital)
+set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | square | triangular |
+    hund | twoband_Cu | threeband | FeAs.")
+set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular hund twoband_Cu threeband
+             FeAs)
 
 if (DCA_LATTICE STREQUAL "bilayer")
   set(DCA_LATTICE_TYPE dca::phys::models::bilayer_lattice<PointGroup>)
@@ -91,19 +96,31 @@ elseif (DCA_LATTICE STREQUAL "triangular")
   set(DCA_LATTICE_TYPE dca::phys::models::triangular_lattice<PointGroup>)
   set(DCA_LATTICE_INCLUDE
     "dca/phys/models/analytic_hamiltonians/triangular_lattice.hpp")
+elseif (DCA_LATTICE STREQUAL "hund")
+  set(DCA_LATTICE_TYPE dca::phys::models::HundLattice<PointGroup>)
+
+elseif (DCA_LATTICE STREQUAL "threeband")
+  set(DCA_LATTICE_TYPE dca::phys::models::ThreebandHubbard<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+    "dca/phys/models/analytic_hamiltonians/threeband_hubbard.hpp")
 
 elseif (DCA_LATTICE STREQUAL "twoband_chain")
   set(DCA_LATTICE_TYPE dca::phys::models::twoband_chain<dca::phys::domains::no_symmetry<1>>)
   set(DCA_LATTICE_INCLUDE
-      "dca/phys/models/analytic_hamiltonians/twoband_chain.hpp")
-
-elseif (DCA_LATTICE STREQUAL "singleband_chain")
-  set(DCA_LATTICE_TYPE dca::phys::models::singleband_chain<dca::phys::domains::no_symmetry<1>>)
+      "dca/phys/models/analytic_hamiltonians/hund_lattice.hpp")
+elseif (DCA_LATTICE STREQUAL "FeAs")
+  set(DCA_LATTICE_TYPE dca::phys::models::FeAsLattice<PointGroup>)
   set(DCA_LATTICE_INCLUDE
-      "dca/phys/models/analytic_hamiltonians/singleband_chain.hpp")
+      "dca/phys/models/analytic_hamiltonians/fe_as_lattice.hpp")
+elseif (DCA_LATTICE STREQUAL "twoband_Cu")
+  set(DCA_LATTICE_TYPE dca::phys::models::TwoBandCu<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+      "dca/phys/models/analytic_hamiltonians/twoband_Cu.hpp")
+
 else()
-  message(FATAL_ERROR
-          "Please set DCA_LATTICE to a valid option: bilayer | square | triangular | twoband_chain | singleband_chain | twoorbital.")
+
+  message(FATAL_ERROR "Please set DCA_LATTICE to a valid option: bilayer | square | triangular |
+          hund | twoband_Cu | threeband | FeAs.")
 endif()
 
 # Model type
@@ -190,20 +207,34 @@ configure_file("${PROJECT_SOURCE_DIR}/include/dca/config/rng.hpp.in"
 ################################################################################
 # Select the cluster solver.
 set(DCA_CLUSTER_SOLVER "CT-AUX" CACHE STRING
-  "The cluster solver for the DCA(+) loop. Options are: CT-AUX | SS-CT-HYB.")
-set_property(CACHE DCA_CLUSTER_SOLVER PROPERTY STRINGS CT-AUX SS-CT-HYB)
+  "The cluster solver for the DCA(+) loop. Options are: CT-AUX | CT-INT | SS-CT-HYB.")
+set_property(CACHE DCA_CLUSTER_SOLVER PROPERTY STRINGS CT-AUX CT-INT SS-CT-HYB)
 
-if (DCA_CLUSTER_SOLVER STREQUAL "CT-AUX")
+if (DCA_CLUSTER_SOLVER STREQUAL "CT-INT")
+  set(DCA_CLUSTER_SOLVER_NAME dca::phys::solver::CT_INT)
+  set(DCA_CLUSTER_SOLVER_INCLUDE "dca/phys/dca_step/cluster_solver/ctint/ctint_cluster_solver.hpp")
+
+  set(DCA_USE_CTINT_SUBMATRIX ON CACHE BOOL "Use submatrix updates if the CT-INT solver is selected.")
+  if(DCA_USE_CTINT_SUBMATRIX)
+    set(DCA_CLUSTER_SOLVER_TYPE
+            "dca::phys::solver::CtintClusterSolver<walker_device, ParametersType, true>")
+  else()
+    set(DCA_CLUSTER_SOLVER_TYPE
+            "dca::phys::solver::CtintClusterSolver<walker_device, ParametersType, false>")
+  endif()
+
+elseif (DCA_CLUSTER_SOLVER STREQUAL "CT-AUX")
   set(DCA_CLUSTER_SOLVER_NAME dca::phys::solver::CT_AUX)
-  set(DCA_CLUSTER_SOLVER_TYPE "dca::phys::solver::CtauxClusterSolver<walker_device, ParametersType, DcaDataType>")
+  set(DCA_CLUSTER_SOLVER_TYPE "dca::phys::solver::CtauxClusterSolver<walker_device, ParametersType, DcaDataType, DIST>")
   set(DCA_CLUSTER_SOLVER_INCLUDE
-    "dca/phys/dca_step/cluster_solver/ctaux/ctaux_cluster_solver.hpp")
+      "dca/phys/dca_step/cluster_solver/ctaux/ctaux_cluster_solver.hpp")
+
 
 elseif (DCA_CLUSTER_SOLVER STREQUAL "SS-CT-HYB")
   set(DCA_CLUSTER_SOLVER_NAME dca::phys::solver::SS_CT_HYB)
-  set(DCA_CLUSTER_SOLVER_TYPE "dca::phys::solver::SsCtHybClusterSolver<walker_device, ParametersType, DcaDataType>")
+  set(DCA_CLUSTER_SOLVER_TYPE "dca::phys::solver::SsCtHybClusterSolver<walker_device, ParametersType, DcaDataType, DIST>")
   set(DCA_CLUSTER_SOLVER_INCLUDE
-    "dca/phys/dca_step/cluster_solver/ss_ct_hyb/ss_ct_hyb_cluster_solver.hpp")
+        "dca/phys/dca_step/cluster_solver/ss_ct_hyb/ss_ct_hyb_cluster_solver.hpp")
 
 # elseif (DCA_CLUSTER_SOLVER STREQUAL "HTS")
 #   set(DCA_CLUSTER_SOLVER_NAME dca::phys::solver::HIGH_TEMPERATURE_SERIES)
@@ -211,7 +242,8 @@ elseif (DCA_CLUSTER_SOLVER STREQUAL "SS-CT-HYB")
 #     "dca/phys/dca_step/cluster_solver/high_temperature_series_expansion/high_temperature_series_expansion_solver.hpp")
 
 else()
-  message(FATAL_ERROR "Please set DCA_CLUSTER_SOLVER to a valid option: CT-AUX | SS-CT-HYB.")
+  message(FATAL_ERROR "Please set DCA_CLUSTER_SOLVER to a valid option: CT-AUX | CT_INT |
+          SS-CT-HYB.")
 endif()
 
 ################################################################################
@@ -226,7 +258,7 @@ option(DCA_WITH_THREADED_SOLVER "Use multiple walker and accumulator threads in 
 
 if (DCA_WITH_THREADED_SOLVER)
   dca_add_config_define(DCA_WITH_THREADED_SOLVER)
-  set(DCA_THREADED_SOLVER_TYPE dca::phys::solver::StdThreadQmciClusterSolver<ClusterSolverBaseType>)
+  set(DCA_THREADED_SOLVER_TYPE dca::phys::solver::StdThreadQmciClusterSolver<ClusterSolverBaseType<DIST>>)
   set(DCA_THREADED_SOLVER_INCLUDE
       "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_cluster_solver.hpp")
 endif()
@@ -238,16 +270,6 @@ mark_as_advanced(DCA_WITH_QMC_BIT)
 
 if (DCA_WITH_QMC_BIT)
   dca_add_config_define(DCA_WITH_QMC_BIT)
-endif()
-
-################################################################################
-# Single precision measurements
-# TODO: maybe change to ON by default.
-option(DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS "Measure in single precision." OFF)
-mark_as_advanced(DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS)
-
-if (DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS)
-  dca_add_config_define(DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS)
 endif()
 
 ################################################################################
@@ -272,7 +294,7 @@ else()
 endif()
 
 ################################################################################
-# Accumulation options.
+# MC options.
 option(DCA_WITH_MEMORY_SAVINGS "Save memory in the two particle accumulation at a slight performance
        cost." OFF)
 mark_as_advanced(DCA_WITH_MEMORY_SAVINGS)
@@ -282,11 +304,22 @@ else()
   set(MEMORY_SAVINGS false)
 endif()
 
-if (DCA_WITH_SINGLE_PRECISION_MEASUREMENTS)
+option(DCA_WITH_SINGLE_PRECISION_MC "Perform Monte Carlo and measurements in single precision." OFF)
+option(DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS "Measure two particle function in single precision." OFF)
+
+if (DCA_WITH_SINGLE_PRECISION_MC)
+  set(DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS ON CACHE BOOL "Measure two particle function in single precision." FORCE)
+  set(MC_SCALAR float)
+else()
+  set(MC_SCALAR double)
+endif()
+
+if (DCA_WITH_SINGLE_PRECISION_TP_MEASUREMENTS)
   set(TP_ACCUMULATION_SCALAR float)
 else()
   set(TP_ACCUMULATION_SCALAR double)
 endif()
+
 
 option(DCA_WITH_MANAGED_MEMORY "Use managed memory allocator." OFF)
 mark_as_advanced(DCA_WITH_MANAGED_MEMORY)
@@ -296,9 +329,18 @@ else()
   set(TWO_PARTICLE_ALLOCATOR "dca::linalg::util::DeviceAllocator<T>")
 endif()
 
-configure_file("${PROJECT_SOURCE_DIR}/include/dca/config/accumulation_options.hpp.in"
-        "${CMAKE_BINARY_DIR}/include/dca/config/accumulation_options.hpp" @ONLY)
+configure_file("${PROJECT_SOURCE_DIR}/include/dca/config/mc_options.hpp.in"
+        "${CMAKE_BINARY_DIR}/include/dca/config/mc_options.hpp" @ONLY)
 
+
+################################################################################
+# Symmetrization
+option(DCA_SYMMETRIZE "Apply cluster, time and frequency symmetries to single particle functions."
+       ON)
+
+if(DCA_SYMMETRIZE)
+  add_compile_definitions(DCA_WITH_SYMMETRIZATION)
+endif()
 
 ################################################################################
 # Generate applications' config files.
