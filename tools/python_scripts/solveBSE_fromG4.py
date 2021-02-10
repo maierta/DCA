@@ -45,26 +45,28 @@ class BSE:
         if self.vertex_channel in ("PARTICLE_PARTICLE_SINGLET"): sys.exit("PARTICLE_PARTICLE_SINGLET channel has singular chi0");
 
         self.calcChi0Cluster()
-        self.calcGammaIrr()
-        if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
-            self.symmetrizeGamma()
-        if calcCluster == False: self.buildChi0Lattice(nkfine)
-        self.buildKernelMatrix()
-        self.calcKernelEigenValues()
-        title = "Leading eigensolutions of BSE for U="+str(self.U)+", t'="+str(self.tp)+r", $\langle n\rangle$="+str(round(self.fill,4))+", T="+str(round(self.temp,4))
-        if self.vertex_channel in ("PARTICLE_HOLE_TRANSVERSE","PARTICLE_HOLE_MAGNETIC"):
-            self.calcSWaveSus()
-            # print("Cluster spin susceptibility: ",sum(self.G4)/(float(self.Nc)*self.invT))
-        if self.draw: self.plotLeadingSolutions(self.Kvecs,self.lambdas,self.evecs[:,:,:],title)
-        if calcRedVertex: self.calcReducibleLatticeVertex()
-        if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
-            if calcCluster == False: 
-                self.calcReducibleLatticeVertex()
-                self.calcSCSus()
-                self.determineFS(); FSpoints = array(self.FSpoints)
-                self.calcPd0FS(FSpoints)
-            self.calcSCClusterSus()
-            self.calcPd0(wCutOff=1)
+        # self.calcGammaIrr()
+
+        # if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
+        #     self.symmetrizeGamma()
+        # if calcCluster == False: self.buildChi0Lattice(nkfine)
+        # self.buildKernelMatrix()
+        # self.calcKernelEigenValues()
+        # title = "Leading eigensolutions of BSE for U="+str(self.U)+", t'="+str(self.tp)+r", $\langle n\rangle$="+str(round(self.fill,4))+", T="+str(round(self.temp,4))
+        # if self.vertex_channel in ("PARTICLE_HOLE_TRANSVERSE","PARTICLE_HOLE_MAGNETIC"):
+        #     self.calcSWaveSus()
+        #     # print("Cluster spin susceptibility: ",sum(self.G4)/(float(self.Nc)*self.invT))
+        # if self.draw: self.plotLeadingSolutions(self.Kvecs,self.lambdas,self.evecs[:,:,:],title)
+        # if calcRedVertex: self.calcReducibleLatticeVertex()
+        # if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
+        #     if calcCluster == False: 
+        #         self.calcReducibleLatticeVertex()
+        #         self.calcSCSus()
+        #         self.determineFS(); FSpoints = array(self.FSpoints)
+        #         self.calcPd0FS(FSpoints)
+        #     self.calcSCClusterSus()
+        #     if (self.Nc > 1): 
+        #         self.calcPd0(wCutOff=1)
 
             # # self.Pd0 = self.calcPd0_LorentzianCutoff()
             # self.Pd0 = self.calcProjectionsKwn(self.chi0M,self.dwave,0)/(self.invT*self.Nc)
@@ -85,13 +87,13 @@ class BSE:
             # print("Vd0(T)*Pd0(T) = ",self.Vd0*self.Pd0)
             # print("\n")
 
-            self.calcPd0andVd()
-            print("Vd01, Pd01 :",self.Vd01,self.Pd01)
-            print("Vd02, Pd02 :",self.Vd02,self.Pd02)
-            print("Vd03, Pd03 :",self.Vd03,self.Pd03)
+                # self.calcPd0andVd()
+                # print("Vd01, Pd01 :",self.Vd01,self.Pd01)
+                # print("Vd02, Pd02 :",self.Vd02,self.Pd02)
+                # print("Vd03, Pd03 :",self.Vd03,self.Pd03)
 
 
-            if self.found_d: self.calcPdFromEigenFull(self.ind_d)
+                # if self.found_d: self.calcPdFromEigenFull(self.ind_d)
 
         self.calcReducibleClusterVertex()
         if self.calcRedVertex & (self.calcCluster==False):
@@ -174,20 +176,25 @@ class BSE:
             self.NwTP = 2*np.array(f['parameters']['function-parameters']['two-particle-functions']['fermionic-frequencies'])[0]
 
         else:
-            self.cluster = array(f["domains"]["CLUSTER"]["REAL_SPACE"]["super-basis"]["data"])
+            # self.cluster = array(f["domains"]["CLUSTER"]["REAL_SPACE"]["super-basis"]["data"])
+            # self.cluster = array(f["domains/CLUSTER/REAL_SPACE/super-basis"])
+            self.cluster = stack(list(f["domains/CLUSTER/REAL_SPACE/super-basis"]), axis=0)
             print("Cluster vectors:",self.cluster)
 
             self.iwm = array(f['parameters']['four-point']['frequency-transfer'])[0] # transferred frequency in units of 2*pi*temp
             self.qchannel = array(f['parameters']['four-point']['momentum-transfer'])
-            a = array(f['parameters']['four-point']['type'])[:]
+            # a = array(f['parameters']['four-point']['type'])[:]
+            a = array(f['parameters/four-point/channels'])[0]
             self.vertex_channel = ''.join(chr(i) for i in a)
             self.invT = array(f['parameters']['physics']['beta'])[0]
             self.temp = 1.0/self.invT
             self.U = array(f['parameters']['single-band-Hubbard-model']['U'])[0]
             self.tp = array(f['parameters']['single-band-Hubbard-model']['t-prime'])[0]
             self.fill = array(f['parameters']['physics']['density'])[0]
-            self.dens = array(f['DCA-loop-functions']['density']['data'])
-            self.nk = array(f['DCA-loop-functions']['n_k']['data'])
+            # self.dens = array(f['DCA-loop-functions']['density']['data'])
+            self.dens = array(f['DCA-loop-functions']['density'])
+            self.nk = array(f['DCA-loop-functions']['n_k'])
+            # self.nk = array(f['DCA-loop-functions']['n_k']['data'])
             if self.newMaster == False:
                 G4Re  = array(f['functions']['G4_k_k_w_w']['data'])[:,:,:,:,0,0,0,0,0]
                 G4Im  = array(f['functions']['G4_k_k_w_w']['data'])[:,:,:,:,0,0,0,0,1]
@@ -198,31 +205,40 @@ class BSE:
                     # G4Re  = array(f['functions']['G4']['data'])[0,:,:,0,:,:,0,0,0,0,0]
                     # G4Im  = array(f['functions']['G4']['data'])[0,:,:,0,:,:,0,0,0,0,1]
                     # New format: order of indices: w1,K1,w2,K2
-                    G4Re  = array(f['functions']['G4']['data'])[0,0,:,:,:,:,0,0,0,0,0]
-                    G4Im  = array(f['functions']['G4']['data'])[0,0,:,:,:,:,0,0,0,0,1]
-                    print("G4 shape:",G4Re.shape)
-                else:
-                    # order of indices: Q,w1,K1,w2,K2
-                    G4Re  = array(f['functions']['G4']['data'])[0,self.iq,:,:,:,:,0,0,0,0,0]
-                    G4Im  = array(f['functions']['G4']['data'])[0,self.iq,:,:,:,:,0,0,0,0,1]
 
-                self.G4 = G4Re+1j*G4Im
+                    # G4Re  = array(f['functions']['G4']['data'])[0,0,:,:,:,:,0,0,0,0,0]
+                    # G4Im  = array(f['functions']['G4']['data'])[0,0,:,:,:,:,0,0,0,0,1]
+
+                    self.G4  = array(f['functions/G4_PARTICLE_PARTICLE_UP_DOWN'])[0,0,:,:,:,:,0,0,0,0]
+                    print("G4 shape:",self.G4.shape)
+                # else:
+                    # order of indices: Q,w1,K1,w2,K2
+                    # G4Re  = array(f['functions']['G4']['data'])[0,self.iq,:,:,:,:,0,0,0,0,0]
+                    # G4Im  = array(f['functions']['G4']['data'])[0,self.iq,:,:,:,:,0,0,0,0,1]
+
+                # self.G4 = G4Re+1j*G4Im
                 # Now reorder G4
                 self.G4=self.G4.swapaxes(1,2) # Now it G4's shape is w1,w2,K1,K2
 
-            GRe = array(f['functions']['cluster_greens_function_G_k_w']['data'])[:,:,0,0,0,0,0]
-            GIm = array(f['functions']['cluster_greens_function_G_k_w']['data'])[:,:,0,0,0,0,1]
-            self.Green = GRe + 1j * GIm
-            s  = np.array(f['functions']['Self_Energy']['data'])
-            self.sigma = s[:,:,0,0,0,0,0] + 1j *s[:,:,0,0,0,0,1]
+            # GRe = array(f['functions']['cluster_greens_function_G_k_w']['data'])[:,:,0,0,0,0,0]
+            # GIm = array(f['functions']['cluster_greens_function_G_k_w']['data'])[:,:,0,0,0,0,1]
+            # self.Green = GRe + 1j * GIm
+
+            self.Green = array(f['functions/cluster_greens_function_G_k_w'])[:,:,0,0,0,0]
+            # s  = np.array(f['functions']['Self_Energy']['data'])
+            # self.sigma = s[:,:,0,0,0,0,0] + 1j *s[:,:,0,0,0,0,1]
+            self.sigma  = array(f['functions/Self_Energy'])[:,:,0,0,0,0]
             # self.sigma = s[:,:,0,:,0,:,0] + 1j *s[:,:,0,:,0,:,1]
             self.wn = np.array(f['domains']['frequency-domain']['elements'])
             self.wnSet = np.array(f['domains']['vertex-frequency-domain (COMPACT)']['elements'])
-            self.Kvecs = array(f['domains']['CLUSTER']['MOMENTUM_SPACE']['elements']['data'])
+            # self.Kvecs = array(f['domains']['CLUSTER']['MOMENTUM_SPACE']['elements']['data'])
+            self.Kvecs = stack(list(f['domains/CLUSTER/MOMENTUM_SPACE/elements']), axis=0)
             self.t = np.array(f['parameters']['single-band-Hubbard-model']['t'])[0]
-            self.mu = np.array(f['DCA-loop-functions']['chemical-potential']['data'])[-1]
+            # self.mu = np.array(f['DCA-loop-functions']['chemical-potential']['data'])[-1]
+            self.mu = np.array(f['DCA-loop-functions/chemical-potential'])[0]
             self.NwTP = 2*np.array(f['parameters']['domains']['imaginary-frequency']['four-point-fermionic-frequencies'])[0]
-            self.qmcSign = list(f['DCA-loop-functions']['sign']['data'])
+            # self.qmcSign = list(f['DCA-loop-functions']['sign']['data'])
+            self.qmcSign = list(f['DCA-loop-functions/sign'])
             print("QMC sign:",self.qmcSign)
 
         self.NwG4 = self.G4.shape[0]
@@ -311,6 +327,10 @@ class BSE:
             import symmetrize_Nc8; sym=symmetrize_Nc8.symmetrize()
             print("symmetrizing 8-site cluster")
             sym.apply_point_group_symmetries_Q0(self.G4)
+        if (self.cluster[0,0] == 2 and self.cluster[0,1] == 0 and self.cluster[1,0] == 0 and self.cluster[1,1] == 2):  # 2x2 cluster
+            import symmetrize_Nc2x2
+            sym=symmetrize_Nc2x2.symmetrize()
+            print("symmetrizing 2x2 cluster")
 
 
 
@@ -346,7 +366,7 @@ class BSE:
                 for ik in range(Nc):
                     i1 = ik + iw * Nc
                     ikPlusQ = int(self.iKSum[self.iKDiff[self.iK0,ik],self.iQ]) # -k+Q
-                    minusiwPlusiwm = int(min(max(NwG4-iw-1 + self.iwm,0),NwG-1)) # -iwn + iwm
+                    minusiwPlusiwm = int(min(max(NwG4-iw-1 + self.iwm,0),NwG4-1)) # -iwn + iwm
                     i2 = ikPlusQ + minusiwPlusiwm * Nc # k2 = q-k1
                     self.chic0M[i1,i2] += self.chic0[iw,ik]
                     
@@ -1001,7 +1021,8 @@ class BSE:
         for ax in axes.flat:
             self.plotEV(ax,Kvecs,lambdas,evecs,inr)
             inr += 1
-            ax.set(adjustable='box-forced', aspect='equal')
+            # ax.set(adjustable='box-forced', aspect='equal')
+            ax.set(aspect='equal')
         if title==None:
             title = r"Leading eigensolutions of BSE for $U=$" + str(self.U) + r", $t\prime=$" + str(self.tp) + r", $\langle n\rangle=$" + str(self.fill) + r", $T=$" + str(self.temp)
         fig.suptitle(title, fontsize=20)

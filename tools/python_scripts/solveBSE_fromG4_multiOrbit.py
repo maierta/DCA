@@ -253,27 +253,27 @@ class BSE:
                 #     else:
                 #         symmTrans_of_orb[0,iSym] = -1 # x <--> y switched --> d_{x^2-y^2} orbital gets a -1 phase factor
 
-                nwn = self.G4r.shape[0]
-                G4New = zeros_like(self.G4r)
+            nwn = self.G4r.shape[0]
+            G4New = zeros_like(self.G4r)
 
-                for iK1 in range(0,Nc):
-                    for iK2 in range(0,Nc):
+            for iK1 in range(0,Nc):
+                for iK2 in range(0,Nc):
 
-                        for l1 in range(self.nOrb):
-                            for l2 in range(self.nOrb):
-                                for l3 in range(self.nOrb):
-                                    for l4 in range(self.nOrb):
+                    for l1 in range(self.nOrb):
+                        for l2 in range(self.nOrb):
+                            for l3 in range(self.nOrb):
+                                for l4 in range(self.nOrb):
 
-                                        for iSym in range(0,8): # Apply every point-group symmetry operation
+                                    for iSym in range(0,8): # Apply every point-group symmetry operation
 
-                                            iK1Trans = sym.symmTrans_of_iK(iK1,iSym)
-                                            iK2Trans = sym.symmTrans_of_iK(iK2,iSym)
-                                            # sgn = symmTrans_of_orb[l1,iSym]*symmTrans_of_orb[l2,iSym]*symmTrans_of_orb[l3,iSym]*symmTrans_of_orb[l4,iSym]
-                                            sgn = 1.0 - 2.0 * mod(l1+l2+l3+l4,2) * sym.iex[iSym]
-                                            # print("l1,l2,l3,l4,iSym,sgn: ",l1,l2,l3,l4,iSym,sgn)
-                                            G4New[:,iK1,l1,l2,:,iK2,l3,l4] += sgn*self.G4r[:,iK1Trans,l1,l2,:,iK2Trans,l3,l4]
-            
-                self.G4r = G4New / 8.
+                                        iK1Trans = sym.symmTrans_of_iK(iK1,iSym)
+                                        iK2Trans = sym.symmTrans_of_iK(iK2,iSym)
+                                        # sgn = symmTrans_of_orb[l1,iSym]*symmTrans_of_orb[l2,iSym]*symmTrans_of_orb[l3,iSym]*symmTrans_of_orb[l4,iSym]
+                                        sgn = 1.0 - 2.0 * mod(l1+l2+l3+l4,2) * sym.iex[iSym]
+                                        # print("l1,l2,l3,l4,iSym,sgn: ",l1,l2,l3,l4,iSym,sgn)
+                                        G4New[:,iK1,l1,l2,:,iK2,l3,l4] += sgn*self.G4r[:,iK1Trans,l1,l2,:,iK2Trans,l3,l4]
+        
+            self.G4r = G4New / 8.
 
             # symmetrize in wn,wn' assuming that G4 is symmetric under k --> -k, k' --> -k'
             for iw1 in range(nwn):
@@ -284,7 +284,6 @@ class BSE:
                     tmp2 = self.G4r[imw1,:,:,:,imw2,:,:,:]
                     self.G4r[iw1,:,:,:,iw2,:,:,:]   = 0.5*(tmp1+conj(tmp2))
                     self.G4r[imw1,:,:,:,imw2,:,:,:] = 0.5*(conj(tmp1)+tmp2)
-
 
 
         self.G4M = self.G4r.reshape(self.nt,self.nt)
@@ -307,21 +306,21 @@ class BSE:
                 sym=symmetrize_Nc2x2.symmetrize()
                 print("symmetrizing 2x2 cluster")
 
-                nwn = G.shape[0] # G[w,k,l1,l2]
-                GNew = zeros_like(G)
+            nwn = G.shape[0] # G[w,k,l1,l2]
+            GNew = zeros_like(G)
 
-                for iK in range(self.Nc):
-                    for l1 in range(self.nOrb):
-                        for l2 in range(self.nOrb):
+            for iK in range(self.Nc):
+                for l1 in range(self.nOrb):
+                    for l2 in range(self.nOrb):
 
-                            for iSym in range(0,8):
-                                iKTrans = sym.symmTrans_of_iK(iK,iSym)
-                                sgn = 1.0 - 2.0 * mod(l1+l2,2) * sym.iex[iSym]
+                        for iSym in range(0,8):
+                            iKTrans = sym.symmTrans_of_iK(iK,iSym)
+                            sgn = 1.0 - 2.0 * mod(l1+l2,2) * sym.iex[iSym]
 
-                                GNew[:,iK,l1,l2] += sgn * G[:,iKTrans,l1,l2]
+                            GNew[:,iK,l1,l2] += sgn * G[:,iKTrans,l1,l2]
 
-                G = GNew / 8.
-                return G
+            G = GNew / 8.
+            return G
 
 
 
@@ -827,6 +826,49 @@ class BSE:
 
     #     fig.suptitle(title, fontsize=20)
 
+    def plotDispersion2D(self, nk=100):
+        # plot along high-sym directions in 2D square lattice BZ: Gamma -> X -> M -> Gamma
+        kx1 = linspace(0, pi, nk)
+        ky1 = linspace(0, 0, nk)
+        kx2 = linspace(pi, pi, nk)
+        ky2 = linspace(0, pi, nk)
+        kx3 = linspace(pi, 0, nk)
+        ky3 = linspace(pi, 0, nk)
+        kx  = concatenate((kx1, kx2, kx3))
+        ky  = concatenate((ky1, ky2, ky3))
+
+        ek = zeros((kx.shape[0], self.nOrb))
+        weight = zeros((kx.shape[0], self.nOrb, self.nOrb))
+
+        for ik in range(kx.shape[0]):
+            ekm = self.dispersion(kx[ik], ky[ik])
+            w,v = linalg.eigh(ekm)
+            ek[ik,:] = w  - self.mu
+            weight[ik,:,:] = abs(v[:,:])**2
+            # for ib in range(self.nOrb):
+                # print("Sum of weights for band ",ib,": ", sum(weight[ik,:,ib]))
+
+        fig, ax = subplots(ncols = self.nOrb, figsize=(4*self.nOrb,4))
+        nk = kx.shape[0]
+        x = arange(0,nk)
+        for io,lax in enumerate(ax[0:self.nOrb]):
+            lax.grid(linestyle=":")
+            for ib in range(self.nOrb):
+                lax.plot(x,ek[:,ib],'-', color="tab:red")
+                lax.scatter(x,ek[:,ib], s=20*weight[:,io,ib], color="tab:red", edgecolors='black')
+
+        # for io in range(ek.shape[1]):
+            # ax.plot(ek[:,io],'-')
+
+        ax[0].set(ylabel="E(k)")
+        for io in range(self.nOrb):
+            ax[io].set(title="Orbital "+str(io))
+        nk0=int(nk/3)
+        for lax in ax:
+            lax.set(xticks=(0,nk0,2*nk0,3*nk0))
+            lax.set(xticklabels=("$\Gamma$", "X", "M", "$\Gamma$"))
+
+
     def plotEV(self,inr):
         # expects evecs[iw,iK,inr]
         
@@ -846,7 +888,7 @@ class BSE:
         #     freqString = "; odd frequency"
 
 
-        fig, ax = mpl.subplots(nrows=nOrb,ncols=nOrb, sharex=True,sharey=True,figsize=(10,10))
+        fig, ax = mpl.subplots(nrows=nOrb,ncols=nOrb, sharex=True,sharey=True,figsize=(8,8))
 
         for l1 in range(nOrb):
             for l2 in range(nOrb):

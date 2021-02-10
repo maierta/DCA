@@ -19,8 +19,8 @@ set(gtest_DIR "${CMAKE_CURRENT_LIST_DIR}/../libs/gmock-1.7.0/gtest/"
 set(HDF5_ROOT "/usr/local/Cellar/hdf5/1.12.0_1/" CACHE PATH "Path to HDF5 installation directory.")
 
 # FFTW
-set(FFTW_INCLUDE_DIR "/usr/local/Cellar/fftw/3.3.8_2/include" CACHE PATH "Path to fftw3.h.")
-set(FFTW_LIBRARY "/usr/local/Cellar/fftw/3.3.8_2/lib/libfftw3.a" CACHE FILEPATH "Path to FFTW3 library.")
+set(FFTW_INCLUDE_DIR "/usr/local/Cellar/fftw/3.3.9/include" CACHE PATH "Path to fftw3.h.")
+set(FFTW_LIBRARY "/usr/local/Cellar/fftw/3.3.9/lib/libfftw3.a" CACHE FILEPATH "Path to FFTW3 library.")
 
 mark_as_advanced(gtest_DIR SPRNG_DIR HDF5_ROOT)
 
