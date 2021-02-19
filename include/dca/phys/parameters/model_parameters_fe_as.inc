@@ -149,8 +149,8 @@ void ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>
     tryToRead("t3", t3_);
     tryToRead("t4", t4_);
     tryToRead("U", U_);
-    tryToRead("U", U1_);
-    tryToRead("U", U2_);
+    tryToRead("U1", U1_);
+    tryToRead("U2", U2_);
     tryToRead("V", V_);
     tryToRead("J", J_);
     tryToRead("Jp", Jp_);
