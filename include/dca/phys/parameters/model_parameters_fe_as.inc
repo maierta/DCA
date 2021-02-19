@@ -48,6 +48,14 @@ public:
   double get_U() const {
     return U_;
   }
+  // On-site, repulsion on orbital 1.
+  double get_U1() const {
+    return U1_;
+  }
+  // On-site, repulsion on orbital 2.
+  double get_U2() const {
+    return U2_;
+  }
   // On-site, different orbital repulsion.
   double get_V() const {
     return V_;
@@ -64,7 +72,7 @@ public:
 
 private:
   double t1_ = 0, t2_ = 0, t3_ = 0, t4_ = 0;
-  double U_ = 0.;
+  double U_ = 0., U1_ = 0., U2_ = 0.;
   double V_ = 0.;
   double J_ = 0.;
   double Jp_ = 0.;
@@ -81,6 +89,8 @@ int ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>:
   buffer_size += concurrency.get_buffer_size(t3_);
   buffer_size += concurrency.get_buffer_size(t4_);
   buffer_size += concurrency.get_buffer_size(U_);
+  buffer_size += concurrency.get_buffer_size(U1_);
+  buffer_size += concurrency.get_buffer_size(U2_);
   buffer_size += concurrency.get_buffer_size(V_);
   buffer_size += concurrency.get_buffer_size(J_);
   buffer_size += concurrency.get_buffer_size(Jp_);
@@ -97,6 +107,8 @@ void ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>
   concurrency.pack(buffer, buffer_size, position, t3_);
   concurrency.pack(buffer, buffer_size, position, t4_);
   concurrency.pack(buffer, buffer_size, position, U_);
+  concurrency.pack(buffer, buffer_size, position, U1_);
+  concurrency.pack(buffer, buffer_size, position, U2_);
   concurrency.pack(buffer, buffer_size, position, V_);
   concurrency.pack(buffer, buffer_size, position, J_);
   concurrency.pack(buffer, buffer_size, position, Jp_);
@@ -111,6 +123,8 @@ void ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>
   concurrency.unpack(buffer, buffer_size, position, t3_);
   concurrency.unpack(buffer, buffer_size, position, t4_);
   concurrency.unpack(buffer, buffer_size, position, U_);
+  concurrency.unpack(buffer, buffer_size, position, U1_);
+  concurrency.unpack(buffer, buffer_size, position, U2_);
   concurrency.unpack(buffer, buffer_size, position, V_);
   concurrency.unpack(buffer, buffer_size, position, J_);
   concurrency.unpack(buffer, buffer_size, position, Jp_);
@@ -135,6 +149,8 @@ void ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>
     tryToRead("t3", t3_);
     tryToRead("t4", t4_);
     tryToRead("U", U_);
+    tryToRead("U", U1_);
+    tryToRead("U", U2_);
     tryToRead("V", V_);
     tryToRead("J", J_);
     tryToRead("Jp", Jp_);
@@ -151,6 +167,8 @@ void ModelParameters<models::TightBindingModel<models::FeAsLattice<PointGroup>>>
               << "\t--------------- \n\n"
               << "\t\t t  : " << t1_ << ", " << t2_ << ", " << t3_ << ", " << t4_ << "\n"
               << "\t\t U  : " << U_ << "\n"
+              << "\t\t U  : " << U1_ << "\n"
+              << "\t\t U  : " << U2_ << "\n"
               << "\t\t V  : " << V_ << "\n"
               << "\t\t J : " << J_ << "\n"
               << "\t\t Jp : " << Jp_ << "\n"

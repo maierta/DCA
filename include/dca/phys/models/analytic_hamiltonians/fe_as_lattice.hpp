@@ -111,6 +111,11 @@ void FeAsLattice<PointGroupType>::initializeHInteraction(
   const int origin = RDmn::parameter_type::origin_index();
 
   const double U = parameters.get_U();  // Same band interaction.
+  double U1 = parameters.get_U1();  // Same band interaction orbital 1.
+  double U2 = parameters.get_U2();  // Same band interaction orbital 2.
+  if (U1 == 0.0 and U2 == 0.0) {
+	  U1 = U; U2 = U;
+  }
   const double V = parameters.get_V();  // Different band interaction.
   const double J = parameters.get_J();  // Spin-spin interaction.
   H_interaction = 0.;
@@ -119,8 +124,10 @@ void FeAsLattice<PointGroupType>::initializeHInteraction(
       for (int s1 = 0; s1 < 2; ++s1)
         for (int s2 = 0; s2 < 2; s2++) {
           // Coulomb repulsion and contribution from -J S_z*S_z interaction.
-          if (b1 == b2 and s1 != s2)
-            H_interaction(b1, s1, b2, s2, origin) = U;
+          if (b1 == b2 == 0 and s1 != s2)
+            H_interaction(b1, s1, b2, s2, origin) = U1;
+          if (b1 == b2 == 1 and s1 != s2)
+            H_interaction(b1, s1, b2, s2, origin) = U2;
           else if (b1 != b2 and s1 == s2)
             H_interaction(b1, s1, b2, s2, origin) = V - J;
           else if (b1 != b2 and s1 != s2)

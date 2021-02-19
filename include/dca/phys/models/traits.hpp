@@ -30,7 +30,8 @@ template <class BaseLattice>
 static constexpr bool has_non_density_interaction<HundLattice<BaseLattice>> = true;
 
 template <class BaseLattice>
-static constexpr bool has_non_density_interaction<FeAsLattice<BaseLattice>> = true;
+static constexpr bool has_non_density_interaction<FeAsLattice<BaseLattice>> = false;
+// static constexpr bool has_non_density_interaction<FeAsLattice<BaseLattice>> = true;
 
 template <class PointGroup>
 static constexpr bool has_non_density_interaction<TwoBandCu<PointGroup>> = true;
