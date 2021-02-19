@@ -124,9 +124,9 @@ void FeAsLattice<PointGroupType>::initializeHInteraction(
       for (int s1 = 0; s1 < 2; ++s1)
         for (int s2 = 0; s2 < 2; s2++) {
           // Coulomb repulsion and contribution from -J S_z*S_z interaction.
-          if (b1 == b2 == 0 and s1 != s2)
+          if (b1 == 0 and b2 == 0 and s1 != s2)
             H_interaction(b1, s1, b2, s2, origin) = U1;
-          if (b1 == b2 == 1 and s1 != s2)
+          if (b1 == 1 and b2 == 1 and s1 != s2)
             H_interaction(b1, s1, b2, s2, origin) = U2;
           else if (b1 != b2 and s1 == s2)
             H_interaction(b1, s1, b2, s2, origin) = V - J;
