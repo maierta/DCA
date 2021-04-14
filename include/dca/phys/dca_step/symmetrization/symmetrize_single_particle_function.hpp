@@ -690,6 +690,8 @@ void symmetrize_single_particle_function::executeCluster(
           norm += std::abs(sign);
 
           f_new(b0, b1, k_ind) += sign * f(b0_new, b1_new, k_new);
+          double diff = std::abs(f(b0_new, b1_new, k_new) - f(b0, b1, k_ind));
+          if (diff >= 1.0e-3) std::cout << "diff, b0, b1, k, b0_new, b1_new, k_new" << diff <<","<< b0 <<","<< b1 <<","<< k_ind <<","<< b0_new <<","<< b1_new <<","<< k_new<<"\n";
 
         }
         assert(std::abs(norm) > 0);

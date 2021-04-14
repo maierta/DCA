@@ -64,6 +64,9 @@ class ModelParameters {};
 // Specialization for twoband Cu model
 #include "twoband_Cu_parameters.inc"
 
+// Specialization for 5-orbital feas model
+#include "fe_as_5orb_parameters.inc"
+
 #include "model_parameters_singleband_chain.inc"
 #include "model_parameters_twoband_chain.inc"
 #include "model_parameters_threeband_hubbard.inc"

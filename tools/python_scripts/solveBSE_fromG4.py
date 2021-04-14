@@ -45,17 +45,17 @@ class BSE:
         if self.vertex_channel in ("PARTICLE_PARTICLE_SINGLET"): sys.exit("PARTICLE_PARTICLE_SINGLET channel has singular chi0");
 
         self.calcChi0Cluster()
-        # self.calcGammaIrr()
+        self.calcGammaIrr()
 
-        # if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
-        #     self.symmetrizeGamma()
-        # if calcCluster == False: self.buildChi0Lattice(nkfine)
-        # self.buildKernelMatrix()
-        # self.calcKernelEigenValues()
-        # title = "Leading eigensolutions of BSE for U="+str(self.U)+", t'="+str(self.tp)+r", $\langle n\rangle$="+str(round(self.fill,4))+", T="+str(round(self.temp,4))
-        # if self.vertex_channel in ("PARTICLE_HOLE_TRANSVERSE","PARTICLE_HOLE_MAGNETIC"):
-        #     self.calcSWaveSus()
-        #     # print("Cluster spin susceptibility: ",sum(self.G4)/(float(self.Nc)*self.invT))
+        if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
+            self.symmetrizeGamma()
+        if calcCluster == False: self.buildChi0Lattice(nkfine)
+        self.buildKernelMatrix()
+        self.calcKernelEigenValues()
+        title = "Leading eigensolutions of BSE for U="+str(self.U)+", t'="+str(self.tp)+r", $\langle n\rangle$="+str(round(self.fill,4))+", T="+str(round(self.temp,4))
+        if self.vertex_channel in ("PARTICLE_HOLE_TRANSVERSE","PARTICLE_HOLE_MAGNETIC"):
+            self.calcSWaveSus()
+            print("Cluster spin susceptibility: ",sum(self.G4)/(float(self.Nc)*self.invT))
         # if self.draw: self.plotLeadingSolutions(self.Kvecs,self.lambdas,self.evecs[:,:,:],title)
         # if calcRedVertex: self.calcReducibleLatticeVertex()
         # if self.vertex_channel in ("PARTICLE_PARTICLE_SUPERCONDUCTING","PARTICLE_PARTICLE_UP_DOWN"):
