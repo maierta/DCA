@@ -317,7 +317,7 @@ void FeAs5Orb<PointGroup>::initializeH0(
     const auto xi13 = 2.*I*t13x*sy + 4.*I*t13xy*sy*cx
                     - 4.*I*t13xxy*(s2y*cx-c2x*sy);
 
-    const auto xi23 = -2.*I*t13x*sx - 4.*I*t13xy*sx*cy;
+    const auto xi23 = -2.*I*t13x*sx - 4.*I*t13xy*sx*cy
                     + 4.*I*t13xxy*(s2x*cy-c2y*sx);
 
     const auto xi14 = 2.*I*t14x*sx + 4.*I*t14xy*cy*sx + 4.*I*t14xxy*s2x*cy;
