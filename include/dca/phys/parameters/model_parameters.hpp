@@ -21,6 +21,8 @@
 
 #include "dca/phys/models/analytic_hamiltonians/bilayer_lattice.hpp"
 #include "dca/phys/models/analytic_hamiltonians/fe_as_lattice.hpp"
+#include "dca/phys/models/analytic_hamiltonians/fe_as_5orb_lattice.hpp"
+#include "dca/phys/models/analytic_hamiltonians/fe_as_3orb_lattice.hpp"
 #include "dca/phys/models/analytic_hamiltonians/twoband_chain.hpp"
 #include "dca/phys/models/analytic_hamiltonians/singleband_chain.hpp"
 #include "dca/phys/models/analytic_hamiltonians/threeband_hubbard.hpp"
@@ -66,6 +68,9 @@ class ModelParameters {};
 
 // Specialization for 5-orbital feas model
 #include "fe_as_5orb_parameters.inc"
+
+// Specialization for 3-orbital feas model
+#include "fe_as_3orb_parameters.inc"
 
 #include "model_parameters_singleband_chain.inc"
 #include "model_parameters_twoband_chain.inc"

@@ -18,6 +18,7 @@
 #include "dca/phys/models/analytic_hamiltonians/fe_as_lattice.hpp"
 #include "dca/phys/models/analytic_hamiltonians/twoband_Cu.hpp"
 #include "dca/phys/models/analytic_hamiltonians/fe_as_5orb_lattice.hpp"
+#include "dca/phys/models/analytic_hamiltonians/fe_as_3orb_lattice.hpp"
 
 namespace dca {
 namespace phys {
@@ -39,6 +40,9 @@ static constexpr bool has_non_density_interaction<TwoBandCu<PointGroup>> = true;
 
 template <class PointGroup>
 static constexpr bool has_non_density_interaction<FeAs5Orb<PointGroup>> = true;
+
+template <class PointGroup>
+static constexpr bool has_non_density_interaction<FeAs3Orb<PointGroup>> = false;
 
 template <class Lattice, class HType, class Parameters>
 std::enable_if_t<has_non_density_interaction<Lattice>> initializeNonDensityInteraction(

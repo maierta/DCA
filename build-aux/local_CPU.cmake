@@ -16,7 +16,7 @@ set(gtest_DIR "${CMAKE_CURRENT_LIST_DIR}/../libs/gmock-1.7.0/gtest/"
 
 # HDF5
 # CMake 3.6 does not properly find HDF5 if HDF5_ROOT is not set.
-set(HDF5_ROOT "/usr/local/Cellar/hdf5/1.12.0_1/" CACHE PATH "Path to HDF5 installation directory.")
+set(HDF5_ROOT "/usr/local/Cellar/hdf5/1.12.0_3/" CACHE PATH "Path to HDF5 installation directory.")
 
 # FFTW
 set(FFTW_INCLUDE_DIR "/usr/local/Cellar/fftw/3.3.9/include" CACHE PATH "Path to fftw3.h.")

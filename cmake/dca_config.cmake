@@ -75,7 +75,7 @@ endif()
 set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | square | triangular |
     hund | twoband_Cu | threeband | FeAs | FeAs5Orb.")
 set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular hund twoband_Cu threeband
-             FeAs FeAs5Orb)
+             FeAs FeAs5Orb FeAs3Orb)
 
 if (DCA_LATTICE STREQUAL "bilayer")
   set(DCA_LATTICE_TYPE dca::phys::models::bilayer_lattice<PointGroup>)
@@ -118,6 +118,11 @@ elseif (DCA_LATTICE STREQUAL "FeAs5Orb")
   set(DCA_LATTICE_TYPE dca::phys::models::FeAs5Orb<PointGroup>)
   set(DCA_LATTICE_INCLUDE
       "dca/phys/models/analytic_hamiltonians/fe_as_5orb_lattice.hpp")
+
+elseif (DCA_LATTICE STREQUAL "FeAs3Orb")
+  set(DCA_LATTICE_TYPE dca::phys::models::FeAs3Orb<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+      "dca/phys/models/analytic_hamiltonians/fe_as_3orb_lattice.hpp")
 
 elseif (DCA_LATTICE STREQUAL "twoband_Cu")
   set(DCA_LATTICE_TYPE dca::phys::models::TwoBandCu<PointGroup>)
