@@ -73,7 +73,7 @@ endif()
 
 # Lattice type
 set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | square | triangular |
-    hund | twoband_Cu | threeband | FeAs | FeAs5Orb.")
+    hund | twoband_Cu | threeband | FeAs | FeAs5Orb | FeAs3Orb.")
 set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular hund twoband_Cu threeband
              FeAs FeAs5Orb FeAs3Orb)
 

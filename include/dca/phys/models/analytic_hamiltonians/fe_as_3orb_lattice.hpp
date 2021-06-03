@@ -142,12 +142,12 @@ double* FeAs3Orb<PointGroup>::initializeKLDABasis() {
 
 template <typename PointGroup>
 std::vector<int> FeAs3Orb<PointGroup>::flavors() {
-  return {0, 1, 2, 3, 4};
+  return {0, 1, 2};
 }
 
 template <typename PointGroup>
 std::vector<std::vector<double>> FeAs3Orb<PointGroup>::aVectors() {
-  return {{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}};
+  return {{0, 0}, {0, 0}, {0, 0}};
 }
 
 template <typename PointGroup>
