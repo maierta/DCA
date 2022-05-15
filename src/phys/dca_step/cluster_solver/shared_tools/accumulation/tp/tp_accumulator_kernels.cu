@@ -171,11 +171,25 @@ __device__ Complex getG(const Complex* __restrict__ G, const int ldg, int k1, in
   const unsigned nk = g4_helper.get_cluster_size();
   const unsigned no = nb * nk;
 
-  const unsigned i_idx = b1 + nb * k1 + no * w1;
-  const unsigned j_idx = b2 + nb * k2 + no * w2;
+  unsigned i_idx = b1 + nb * k1 + no * w1;
+  unsigned j_idx = b2 + nb * k2 + no * w2;
 
-  const auto val = G[i_idx + ldg * j_idx];
-  return is_conj ? conj(val) : val;
+  auto val = G[i_idx + ldg * j_idx];
+
+  if (!is_conj)
+      return val;
+  else {
+      if (b1==b2)
+          return conj(val);
+      else {
+          i_idx = b2 + nb * k1 + no * w1;
+          j_idx = b1 + nb * k2 + no * w2;
+          val = -conj(G[i_idx + ldg * j_idx]);
+          return val;
+      }
+  }
+}  
+  // return is_conj ? conj(val) : val;
 }
 
 template <typename Real, FourPointType type>
