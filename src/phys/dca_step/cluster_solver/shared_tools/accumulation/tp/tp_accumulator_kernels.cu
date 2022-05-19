@@ -188,7 +188,6 @@ __device__ Complex getG(const Complex* __restrict__ G, const int ldg, int k1, in
           return val;
       }
   }
-}  
   // return is_conj ? conj(val) : val;
 }
 
