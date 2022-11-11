@@ -155,6 +155,7 @@ set(_CXX_FILESYSTEM_HAVE_HEADER "" CACHE INTERNAL "")
 
 if(find_final)
     check_include_file_cxx("filesystem" _CXX_FILESYSTEM_HAVE_HEADER)
+    set(_CXX_FILESYSTEM_HAVE_HEADER 1)
     mark_as_advanced(_CXX_FILESYSTEM_HAVE_HEADER)
     if(_CXX_FILESYSTEM_HAVE_HEADER)
         # We found the non-experimental header. Don't bother looking for the
