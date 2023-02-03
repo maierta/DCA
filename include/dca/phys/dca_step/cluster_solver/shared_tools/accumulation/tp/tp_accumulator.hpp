@@ -386,8 +386,8 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::getGMultiband(int s, int k1, in
     const Complex* const G_ptr = &G_(0, 0, s, k1, k2, plus_w1(w1_ext), w2_ext);
     for (int b2 = 0; b2 < n_bands_; ++b2)
       for (int b1 = 0; b1 < n_bands_; ++b1)
-        // G(b1, b2) = beta * G(b1, b2) + G_ptr[b1 + b2 * n_bands_];
-        G(b1, b2) = G_ptr[b1 + b2 * n_bands_];
+        G(b1, b2) = beta * G(b1, b2) + G_ptr[b1 + b2 * n_bands_];
+        // G(b1, b2) = G_ptr[b1 + b2 * n_bands_];
   }
   else {
     const Complex* const G_ptr =
@@ -395,12 +395,8 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::getGMultiband(int s, int k1, in
     // &G_(0, 0, s, k1, k2, minus_w1(w1_ext), minus_w2(w2_ext));
     for (int b2 = 0; b2 < n_bands_; ++b2)
       for (int b1 = 0; b1 < n_bands_; ++b1)
-        // G(b1, b2) = std::conj(G_ptr[b2 + b1 * n_bands_]);
-        // G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[b1 + b2 * n_bands_]);
-        if (b1 == b2)
-          G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[b2 + b1 * n_bands_]);
-        else
-          G(b1, b2) = beta * G(b1, b2) - std::conj(G_ptr[b2 + b1 * n_bands_]);
+        // For Moire model G_up(-k, -wn) = conj(G_dn(k, wn))
+        G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[1-b2 + (1-b1) * n_bands_]);
   }
 }
 

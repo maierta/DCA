@@ -73,9 +73,9 @@ endif()
 
 # Lattice type
 set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | square | triangular |
-    hund | twoband_Cu | threeband | FeAs | Rashba.")
+    hund | twoband_Cu | threeband | FeAs | Rashba | Moire.")
 set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular hund twoband_Cu threeband
-             FeAs Rashba)
+             FeAs Rashba Moire)
 
 if (DCA_LATTICE STREQUAL "bilayer")
   set(DCA_LATTICE_TYPE dca::phys::models::bilayer_lattice<PointGroup>)
@@ -114,9 +114,14 @@ elseif (DCA_LATTICE STREQUAL "Rashba")
   set(DCA_LATTICE_INCLUDE
           "dca/phys/models/analytic_hamiltonians/rashba_hubbard.hpp")
 
+elseif (DCA_LATTICE STREQUAL "Moire")
+  set(DCA_LATTICE_TYPE dca::phys::models::moire_hubbard<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+          "dca/phys/models/analytic_hamiltonians/Moire_Hubbard.hpp")
+
 else()
   message(FATAL_ERROR "Please set DCA_LATTICE to a valid option: bilayer | square | triangular |
-          hund | twoband_Cu | threeband | FeAs | Rashba.")
+          hund | twoband_Cu | threeband | FeAs | Rashba | Moire.")
 endif()
 
 # Model type

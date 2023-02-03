@@ -68,6 +68,9 @@ class ModelParameters {};
 // Specialization for Rashba-Hubbard model
 #include "model_parameters_rashba_hubbard.inc"
 
+// Specialization for Moire-Hubbard model
+#include "model_parameters_moire_hubbard.inc"
+
 #include "model_parameters_singleband_chain.inc"
 #include "model_parameters_twoband_chain.inc"
 #include "model_parameters_threeband_hubbard.inc"
