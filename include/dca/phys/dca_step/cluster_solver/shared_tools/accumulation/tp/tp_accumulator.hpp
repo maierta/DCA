@@ -396,7 +396,8 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::getGMultiband(int s, int k1, in
     for (int b2 = 0; b2 < n_bands_; ++b2)
       for (int b1 = 0; b1 < n_bands_; ++b1)
         // For Moire model G_up(-k, -wn) = conj(G_dn(k, wn))
-        G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[1-b2 + (1-b1) * n_bands_]);
+        // G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[1-b2 + (1-b1) * n_bands_]);
+        G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[b2 + b1 * n_bands_]);
   }
 }
 
