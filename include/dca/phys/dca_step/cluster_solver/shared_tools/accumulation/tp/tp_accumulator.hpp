@@ -63,7 +63,8 @@ public:
   using WTpDmn = func::dmn_0<domains::vertex_frequency_domain<domains::COMPACT>>;
   using WTpPosDmn = func::dmn_0<domains::vertex_frequency_domain<domains::COMPACT_POSITIVE>>;
   using WTpExtDmn = func::dmn_0<domains::vertex_frequency_domain<domains::EXTENDED>>;
-  using WTpExtPosDmn = func::dmn_0<domains::vertex_frequency_domain<domains::EXTENDED_POSITIVE>>;
+  // using WTpExtPosDmn = func::dmn_0<domains::vertex_frequency_domain<domains::EXTENDED_POSITIVE>>;
+  using WTpExtPosDmn = WTpExtDmn;
   using WExchangeDmn = func::dmn_0<domains::FrequencyExchangeDomain>;
 
   using Data = DcaData<Parameters>;
@@ -239,8 +240,10 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::initializeG0() {
     for (int k = 0; k < KDmn::dmn_size(); ++k)
       for (int s = 0; s < 2; ++s)
         for (int b2 = 0; b2 < n_bands_; ++b2)
-          for (int b1 = 0; b1 < n_bands_; ++b1)
+          for (int b1 = 0; b1 < n_bands_; ++b1) {
             G0_(b1, b2, s, k, w) = (*G0_ptr_)(b1, s, b2, s, k, w + sp_index_offset);
+            // std::cout << G0_(b1, b2, s, k, w) << "\n";
+          }
   }
 }
 
@@ -315,11 +318,13 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::computeGSingleband(const int s,
   assert(w1 < WTpExtPosDmn::dmn_size());
   assert(w2 < WTpExtDmn::dmn_size());
 
-  const Complex G0_w1 = G0_(0, 0, s, k1, w1 + n_pos_frqs_);
+  const Complex G0_w1 = G0_(0, 0, s, k1, w1);
+  // const Complex G0_w1 = G0_(0, 0, s, k1, w1 + n_pos_frqs_);
   const Complex G0_w2 = G0_(0, 0, s, k2, w2);
   const Complex M_val = G_(0, 0, s, k1, k2, w1, w2);
 
-  if (k2 == k1 && w2 == w1 + n_pos_frqs_)
+  if (k2 == k1 && w2 == w1)
+  // if (k2 == k1 && w2 == w1 + n_pos_frqs_)
     G_(0, 0, s, k1, k2, w1, w2) = -G0_w1 * M_val * G0_w2 + G0_w1 * beta_;
   else
     G_(0, 0, s, k1, k2, w1, w2) = -G0_w1 * M_val * G0_w2;
@@ -332,10 +337,19 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::computeGMultiband(const int s, 
   assert(w1 < WTpExtPosDmn::dmn_size());
   assert(w2 < WTpExtDmn::dmn_size());
 
-  const linalg::MatrixView<Complex, linalg::CPU> G0_w1(&G0_(0, 0, s, k1, w1 + n_pos_frqs_),
-                                                       n_bands_, n_bands_);
+  // const linalg::MatrixView<Complex, linalg::CPU> G0_w1(&G0_(0, 0, s, k1, w1 + n_pos_frqs_),
+  //                                                      n_bands_, n_bands_);
+  const linalg::MatrixView<Complex, linalg::CPU> G0_w1(&G0_(0, 0, s, k1, w1), n_bands_, n_bands_);
   const linalg::MatrixView<Complex, linalg::CPU> G0_w2(&G0_(0, 0, s, k2, w2), n_bands_, n_bands_);
   linalg::MatrixView<Complex, linalg::CPU> M_matrix(&G_(0, 0, s, k1, k2, w1, w2), n_bands_);
+
+  for (int b2 = 0; b2 < n_bands_; ++b2)
+    for (int b1 = 0; b1 < n_bands_; ++b1) {
+        if (std::isnan(real(G_(b1, b2, s, k1, k2, w1, w2))))  
+          std::cout << "nan in M matrix" "\n";
+        if (std::isnan(real(G0_(b1, b2, s, k1, w1))))  
+          std::cout << "nan in G0 matrix" "\n";
+      }
 
   // G(w1, w2) <- -G0(w1) M(w1, w2) G0(w2)
   linalg::matrixop::gemm(G0_w1, M_matrix, G0_M_);
@@ -344,8 +358,11 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::computeGMultiband(const int s, 
   // G(w1, w2) += \delta(w1, w2) \delta(k1,k2) G0(w1)
   if (G0_w1.ptr() == G0_w2.ptr()) {
     for (int b2 = 0; b2 < n_bands_; ++b2)
-      for (int b1 = 0; b1 < n_bands_; ++b1)
+      for (int b1 = 0; b1 < n_bands_; ++b1) {
         M_matrix(b1, b2) += G0_w1(b1, b2) * beta_;
+        // if (std::isnan(real(G_(b1, b2, s, k1, k2, w1, w2))))  
+        //   std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << "," << b1 << "," << b2 << "," << M_matrix(b1, b2) << "\n";
+      }
   }
 }
 
@@ -355,18 +372,19 @@ auto TpAccumulator<Parameters, linalg::CPU, DT>::getGSingleband(const int s, con
                                                                 const int w2) -> Complex const {
   const int w2_ext = w2 + extension_index_offset_;
   const int w1_ext = w1 + extension_index_offset_;
-  auto minus_w1 = [=](const int w) { return n_pos_frqs_ - 1 - w; };
-  auto minus_w2 = [=](const int w) { return 2 * n_pos_frqs_ - 1 - w; };
-  auto plus_w1 = [=](const int w) { return w - n_pos_frqs_; };
-  auto minus_k = [=](const int k) {
-    const static int k0 = KDmn::parameter_type::origin_index();
-    return KDmn::parameter_type::subtract(k, k0);
-  };
+  // auto minus_w1 = [=](const int w) { return n_pos_frqs_ - 1 - w; };
+  // auto minus_w2 = [=](const int w) { return 2 * n_pos_frqs_ - 1 - w; };
+  // auto plus_w1 = [=](const int w) { return w - n_pos_frqs_; };
+  // auto minus_k = [=](const int k) {
+  //   const static int k0 = KDmn::parameter_type::origin_index();
+  //   return KDmn::parameter_type::subtract(k, k0);
+  // };
 
-  if (w1_ext >= n_pos_frqs_)
-    return G_(0, 0, s, k1, k2, plus_w1(w1_ext), w2_ext);
-  else
-    return std::conj(G_(0, 0, s, minus_k(k1), minus_k(k2), minus_w1(w1_ext), minus_w2(w2_ext)));
+  // if (w1_ext >= n_pos_frqs_)
+    return G_(0, 0, s, k1, k2, w1_ext, w2_ext);
+    // return G_(0, 0, s, k1, k2, plus_w1(w1_ext), w2_ext);
+  // else
+  //   return std::conj(G_(0, 0, s, minus_k(k1), minus_k(k2), minus_w1(w1_ext), minus_w2(w2_ext)));
 }
 
 template <class Parameters, DistType DT>
@@ -374,31 +392,37 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::getGMultiband(int s, int k1, in
                                                                Matrix& G, const Complex beta) const {
   const int w2_ext = w2 + extension_index_offset_;
   const int w1_ext = w1 + extension_index_offset_;
-  auto minus_w1 = [=](const int w) { return n_pos_frqs_ - 1 - w; };
-  auto minus_w2 = [=](const int w) { return 2 * n_pos_frqs_ - 1 - w; };
-  auto plus_w1 = [=](const int w) { return w - n_pos_frqs_; };
+  // auto minus_w1 = [=](const int w) { return n_pos_frqs_ - 1 - w; };
+  // auto minus_w2 = [=](const int w) { return 2 * n_pos_frqs_ - 1 - w; };
+  // auto plus_w1 = [=](const int w) { return w - n_pos_frqs_; };
 
-  auto minus_k = [=](const int k) {
-    const static int k0 = KDmn::parameter_type::origin_index();
-    return KDmn::parameter_type::subtract(k, k0);
-  };
-  if (w1_ext >= n_pos_frqs_) {
-    const Complex* const G_ptr = &G_(0, 0, s, k1, k2, plus_w1(w1_ext), w2_ext);
+  // auto minus_k = [=](const int k) {
+    // const static int k0 = KDmn::parameter_type::origin_index();
+    // return KDmn::parameter_type::subtract(k, k0);
+  // };
+  // if (w1_ext >= n_pos_frqs_) {
+    const Complex* const G_ptr = &G_(0, 0, s, k1, k2, w1_ext, w2_ext);
+    // std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << ","<< G_ptr[0] << "\n";
+    // const Complex* const G_ptr = &G_(0, 0, s, k1, k2, plus_w1(w1_ext), w2_ext);
     for (int b2 = 0; b2 < n_bands_; ++b2)
-      for (int b1 = 0; b1 < n_bands_; ++b1)
+      for (int b1 = 0; b1 < n_bands_; ++b1) {
         G(b1, b2) = beta * G(b1, b2) + G_ptr[b1 + b2 * n_bands_];
+        // if (std::isnan(real(G_(b1, b2, s, k1, k2, w1_ext, w2_ext))))  
+        //   std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << "," << b1 << "," << b2 << "," << G(b1, b2) << "\n";
+      }
+
         // G(b1, b2) = G_ptr[b1 + b2 * n_bands_];
-  }
-  else {
-    const Complex* const G_ptr =
-        &G_(0, 0, s, minus_k(k1), minus_k(k2), minus_w1(w1_ext), minus_w2(w2_ext));
-    // &G_(0, 0, s, k1, k2, minus_w1(w1_ext), minus_w2(w2_ext));
-    for (int b2 = 0; b2 < n_bands_; ++b2)
-      for (int b1 = 0; b1 < n_bands_; ++b1)
-        // For Moire model G_up(-k, -wn) = conj(G_dn(k, wn))
-        // G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[1-b2 + (1-b1) * n_bands_]);
-        G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[b2 + b1 * n_bands_]);
-  }
+  // }
+  // else {
+  //   const Complex* const G_ptr =
+  //       &G_(0, 0, s, minus_k(k1), minus_k(k2), minus_w1(w1_ext), minus_w2(w2_ext));
+  //   // &G_(0, 0, s, k1, k2, minus_w1(w1_ext), minus_w2(w2_ext));
+  //   for (int b2 = 0; b2 < n_bands_; ++b2)
+  //     for (int b1 = 0; b1 < n_bands_; ++b1)
+  //       // For Moire model G_up(-k, -wn) = conj(G_dn(k, wn))
+  //       // G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[1-b2 + (1-b1) * n_bands_]);
+  //       G(b1, b2) = beta * G(b1, b2) + std::conj(G_ptr[b2 + b1 * n_bands_]);
+  // }
 }
 
 template <class Parameters, DistType DT>
