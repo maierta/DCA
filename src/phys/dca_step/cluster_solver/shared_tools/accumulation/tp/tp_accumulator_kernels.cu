@@ -656,6 +656,7 @@ float updateG4(std::complex<Real>* G4, const std::complex<Real>* G_dn, const int
 
   return flops;
 }
+}
 
 // Explicit instantiation.
 template void computeGSingleband<float>(std::complex<float>* G, int ldg,
