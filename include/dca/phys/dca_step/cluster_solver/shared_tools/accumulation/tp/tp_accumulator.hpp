@@ -343,14 +343,6 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::computeGMultiband(const int s, 
   const linalg::MatrixView<Complex, linalg::CPU> G0_w2(&G0_(0, 0, s, k2, w2), n_bands_, n_bands_);
   linalg::MatrixView<Complex, linalg::CPU> M_matrix(&G_(0, 0, s, k1, k2, w1, w2), n_bands_);
 
-  for (int b2 = 0; b2 < n_bands_; ++b2)
-    for (int b1 = 0; b1 < n_bands_; ++b1) {
-        if (std::isnan(real(G_(b1, b2, s, k1, k2, w1, w2))))  
-          std::cout << "nan in M matrix" "\n";
-        if (std::isnan(real(G0_(b1, b2, s, k1, w1))))  
-          std::cout << "nan in G0 matrix" "\n";
-      }
-
   // G(w1, w2) <- -G0(w1) M(w1, w2) G0(w2)
   linalg::matrixop::gemm(G0_w1, M_matrix, G0_M_);
   linalg::matrixop::gemm(Complex(-1), G0_M_, G0_w2, Complex(0), M_matrix);
@@ -360,8 +352,6 @@ void TpAccumulator<Parameters, linalg::CPU, DT>::computeGMultiband(const int s, 
     for (int b2 = 0; b2 < n_bands_; ++b2)
       for (int b1 = 0; b1 < n_bands_; ++b1) {
         M_matrix(b1, b2) += G0_w1(b1, b2) * beta_;
-        // if (std::isnan(real(G_(b1, b2, s, k1, k2, w1, w2))))  
-        //   std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << "," << b1 << "," << b2 << "," << M_matrix(b1, b2) << "\n";
       }
   }
 }
