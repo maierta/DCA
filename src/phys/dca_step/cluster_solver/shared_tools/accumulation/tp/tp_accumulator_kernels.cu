@@ -193,7 +193,7 @@ __device__ Complex getG(const Complex* __restrict__ G, const int ldg, int k1, in
       //     j_idx = b1 + nb * k2 + no * w2;
       //     val = -conj(G[i_idx + ldg * j_idx]);
           return val;
-      }
+      // }
   }
   // return is_conj ? conj(val) : val;
 }
