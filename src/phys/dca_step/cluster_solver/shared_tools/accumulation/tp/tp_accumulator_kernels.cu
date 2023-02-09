@@ -180,6 +180,9 @@ __device__ Complex getG(const Complex* __restrict__ G, const int ldg, int k1, in
       return val;
   else {
       // For Moire model G_up(-k, -wn) = conj(G_dn(k, wn))
+      // but for a given configuration, SU(2) symmetry is broken by the auxialary spin field
+      // This mean the following code is incorrect and we must extend the calculation to all 
+      // frequencies w1, w2, including negative w1. 
         i_idx = 1-b2 + nb * k1 + no * w1;
         j_idx = 1-b1 + nb * k2 + no * w2;
         val = conj(G[i_idx + ldg * j_idx]);

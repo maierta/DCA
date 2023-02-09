@@ -183,7 +183,8 @@ void CachedNdft<Scalar, RDmn, WDmn, WPosDmn, linalg::CPU, non_density_density>::
 
   for (int l_i = start_index_left_[orb_i]; l_i < end_index_left_[orb_i]; ++l_i) {
     const int i = l_i - start_index_left_[orb_i];
-    std::copy_n(&T_(n_w_pos, config_left_[l_i].idx), n_w_pos, &T_l_(0, i));
+    std::copy_n(&T_(0, config_left_[l_i].idx), n_w_pos, &T_l_(0, i));
+    // std::copy_n(&T_(n_w_pos, config_left_[l_i].idx), n_w_pos, &T_l_(0, i));
   }
 
   // T_r_ matrix
@@ -199,7 +200,7 @@ template <typename Scalar, class RDmn, class WDmn, class WPosDmn, bool non_densi
 float CachedNdft<Scalar, RDmn, WDmn, WPosDmn, linalg::CPU, non_density_density>::executeTrimmedFT() {
   float flops = 0.;
 
-  assert(WPosDmn::dmn_size() == WDmn::dmn_size() / 2);
+  // assert(WPosDmn::dmn_size() == WDmn::dmn_size() / 2);
 
   assert(T_l_.size().first == WPosDmn::dmn_size());
   assert(T_l_.size().second == M_ij_.size().first);
