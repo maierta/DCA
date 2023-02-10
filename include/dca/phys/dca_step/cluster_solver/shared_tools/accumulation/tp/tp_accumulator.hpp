@@ -651,6 +651,7 @@ double TpAccumulator<Parameters, linalg::CPU, DT>::updateG4(const int channel_id
                   }
           }
         }
+      break;
 
       case PARTICLE_HOLE_MAGNETIC:
         // G4(k1, k2, k_ex) =  <c^+(k1+k_ex, s1) c(k1, s2) c^+(k2, s4) c(k2+k_ex, s3)>
