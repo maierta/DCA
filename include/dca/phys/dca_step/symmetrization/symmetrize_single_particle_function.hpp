@@ -409,7 +409,6 @@ template <typename Scalar, typename FDmn0, typename FDmn1>
 void SymmetrizeSingleParticleFunction<Parameters>::symmetrizeSpecial(
     func::function<Scalar, func::dmn_variadic<NuDmn, NuDmn, FDmn0, FDmn1>>& f, bool /*do_diff*/) {
   /* std::cout << "In SymmetrizeSpecial, symmetrizing function " << f.get_name() << "\n"; */
-
   for (int ind_1 = 0; ind_1 < FDmn1::dmn_size(); ind_1++) {
     for (int ind_0 = 0; ind_0 < FDmn0::dmn_size(); ind_0++) {
       // for (int i = 0; i < BDmn::dmn_size(); i++) {
@@ -431,13 +430,15 @@ void SymmetrizeSingleParticleFunction<Parameters>::symmetrizeSpecial(
       f(2, 0, 2, 0, ind_0, ind_1) = tmpAdn;
       f(3, 0, 3, 0, ind_0, ind_1) = tmpAup;
 
-      // Also set the inter-orbital AB (non-local) terms to zero
-      f(0, 0, 1, 0, ind_0, ind_1) = 0;
-      f(1, 0, 0, 0, ind_0, ind_1) = 0;
-      f(2, 0, 3, 0, ind_0, ind_1) = 0;
-      f(3, 0, 2, 0, ind_0, ind_1) = 0;
+      // Also set the inter-orbital AB (non-local) terms to zero for single-site DMFT
+      if (FDmn0::dmn_size() == 1) {
+        f(0, 0, 1, 0, ind_0, ind_1) = 0;
+        f(1, 0, 0, 0, ind_0, ind_1) = 0;
+        f(2, 0, 3, 0, ind_0, ind_1) = 0;
+        f(3, 0, 2, 0, ind_0, ind_1) = 0;
+      }
 
-      // Intra-orbital AA, BB , opposite spin
+      // Intra-orbital AA, BB , opposite spin (Basis: A,up, B,up, A,db, B,dn)
       f(0, 0, 2, 0, ind_0, ind_1) = 0;
       f(2, 0, 0, 0, ind_0, ind_1) = 0;
       f(1, 0, 3, 0, ind_0, ind_1) = 0;
