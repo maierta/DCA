@@ -47,8 +47,6 @@ namespace solver {
 namespace accumulator {
 // dca::phys::solver::accumulator::
 
-using dca::util::RealAlias;
-  
 template <class Parameters, DistType DT = DistType::NONE, linalg::DeviceType device = linalg::CPU>
 class TpAccumulator {};
 
@@ -78,7 +76,7 @@ public:
 protected:
   using Profiler = typename Parameters::profiler_type;
 
-  using SpGreenFunction =
+  using SpGreensFunction =
       func::function<TpComplex, func::dmn_variadic<BDmn, BDmn, SDmn, KDmn, KDmn, WTpExtPosDmn, WTpExtDmn>>;
 
 public:
@@ -142,9 +140,9 @@ protected:
 
   auto getGSingleband(int s, int k1, int k2, int w1, int w2) -> TpComplex const;
 
-  template <class Configuration, typename SpScalar>
-  float computeM(const std::array<linalg::Matrix<SpScalar, linalg::CPU>, 2>& M_pair,
-                 const std::array<Configuration, 2>& configs);
+  // template <class Configuration, typename SpScalar>
+  // double computeM(const std::array<linalg::Matrix<SpScalar, linalg::CPU>, 2>& M_pair,
+  //                const std::array<Configuration, 2>& configs);
 
   double updateG4(int channel_id);
 
@@ -157,7 +155,7 @@ protected:
                                      bool cross_legs);
 
 protected:
-  const func::function<std::complex<double>, func::dmn_variadic<NuDmn, NuDmn, KDmn, WDmn>>* const G0_ptr_ =
+  const func::function<TpComplex, func::dmn_variadic<NuDmn, NuDmn, KDmn, WDmn>>* const G0_ptr_ =
       nullptr;
 
   const int thread_id_;
@@ -172,7 +170,7 @@ protected:
     models::HasInitializeNonDensityInteractionMethod<Parameters>::value;
   //CachedNdft<Scalar, RDmn, WTpExtDmn, WTpExtPosDmn, linalg::CPU, non_density_density_> ndft_obj_;
 
-  SpGreenFunction G_;
+  SpGreensFunction G_;
 
   std::vector<TpGreensFunction> G4_;
   std::vector<FourPointType> channels_;
@@ -194,8 +192,7 @@ TpAccumulatorBase<Parameters, DT>::TpAccumulatorBase(
       G_("tp_acc_base::G_"),
       channels_(pars.get_four_point_channels()),
       G0_("tp_acc_base::G0_"),
-      extension_index_offset_((WTpExtDmn::dmn_size() - WTpDmn::dmn_size()) / 2),
-      n_pos_frqs_(WTpExtPosDmn::dmn_size()) {
+      extension_index_offset_((WTpExtDmn::dmn_size() - WTpDmn::dmn_size()) / 2) {
 
   if (WDmn::dmn_size() < WTpExtDmn::dmn_size())
     throw(std::logic_error("The number of single particle frequencies is too small."));
@@ -208,7 +205,6 @@ TpAccumulatorBase<Parameters, DT>::TpAccumulatorBase(
   for (auto channel : channels_) {
     G4_.emplace_back("G4_" + toString(channel), pars.get_concurrency());
   }
-
 }
 
 template <class Parameters, DistType DT>

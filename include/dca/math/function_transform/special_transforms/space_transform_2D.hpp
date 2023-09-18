@@ -80,7 +80,7 @@ void SpaceTransform2D<RDmn, KDmn, Scalar>::execute(
             linalg::MatrixView<Complex, linalg::CPU> f_r_r(&f_input(0, 0, b1, b2, s, w1, w2), nc);
 
             // f(k1,k2) = \sum_{r1, r2} exp(i(k1 * r1 - k2 *r2)) f(r1, r2) / Nc
-            linalg::matrixop::gemm(T, f_r_r, tmp);
+            linalg::matrixop::gemm(T, f_r_r,tmp);
             linalg::matrixop::gemm('N', 'C', norm, tmp, T, Complex(0), f_r_r);
 
             // f(k1, k2) *= Exp[i (k1 a[b1] - k2 a[b2])]
@@ -125,7 +125,7 @@ const auto& SpaceTransform2D<RDmn, KDmn, Scalar>::getPhaseFactors() {
     for (int k = 0; k < KDmn::dmn_size(); ++k) {
       const auto& k_vec = KDmn::get_elements()[k];
       for (int b = 0; b < BDmn::dmn_size(); ++b) {
-	// Scalar could be cuComplex or cuDouableComplex so...
+	// Scalar could be cuComplex or cuDoubleComplex so...
 	std::complex<dca::util::RealAlias<Scalar>> temp_phase{0., util::innerProduct(k_vec, a_vecs[b])};
 	temp_phase = std::exp(temp_phase);
 	phase_factors(b,k) = Complex{temp_phase.real(), temp_phase.imag()};

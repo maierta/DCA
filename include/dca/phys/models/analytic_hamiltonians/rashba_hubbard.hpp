@@ -58,6 +58,7 @@ public:
   // }
 
   static std::vector<int> flavors();
+
   static std::vector<std::vector<double>> aVectors();
 
   static std::vector<std::pair<std::pair<int, int>, std::pair<int, int>>> orbitalPermutations();
@@ -99,7 +100,7 @@ const double* RashbaHubbard<PointGroup>::initializeRLDABasis() {
   static const std::array<double, 4> r_base{1, 0, 0, 1};
   return r_base.data();
 }
-
+  
 template <typename PointGroup>
 std::vector<int> RashbaHubbard<PointGroup>::flavors() {
   static std::vector<int> flavors(BANDS);
@@ -129,8 +130,8 @@ void RashbaHubbard<PointGroup>::initializeHInteraction(
     const parameters_type& parameters) {
   if (BandDmn::dmn_size() != BANDS)
     throw std::logic_error("Rashba lattice has 2 bands.");
-  if (SpinDmn::dmn_size() != 2)
-    throw std::logic_error("Spin domain size must be 2.");
+  // if (SpinDmn::dmn_size() != 2)
+  //   throw std::logic_error("Spin domain size must be 2.");
 
   // Get the index of the origin (0,0).
   const int origin = RDmn::parameter_type::origin_index();
@@ -163,8 +164,8 @@ void RashbaHubbard<PointGroup>::initializeH0(
                                                   func::dmn_variadic<BandDmn, SpinDmn>, KDmn>>& H_0) {
   if (BandDmn::dmn_size() != BANDS)
     throw std::logic_error("Square lattice has one band.");
-  if (SpinDmn::dmn_size() != 2)
-    throw std::logic_error("Spin domain size must be 2.");
+  // if (SpinDmn::dmn_size() != 2)
+  //   throw std::logic_error("Spin domain size must be 2.");
 
   const auto& k_vecs = KDmn::get_elements();
 

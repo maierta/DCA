@@ -49,7 +49,7 @@ public:
   using ThisType = StdThreadQmciClusterSolver<BaseClass>;
   static constexpr linalg::DeviceType device = QmciSolver::device;
   using Parameters = typename BaseClass::ParametersType;
-  using Real = typename dca::config::McOptions::MC_REAL;
+  using Real = typename Parameters::Real;
   using Scalar = typename dca::util::ScalarSelect<Real, Parameters::complex_g0>::type;
   using SignType = std::conditional_t<dca::util::IsComplex_t<Scalar>::value, Scalar, std::int8_t>;
   using Data = typename BaseClass::Data;
@@ -636,7 +636,10 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id,
     if (parameters_.fix_meas_per_walker() || walk_finished_ == parameters_.get_walkers() - 1)
       current_exception = std::make_unique<std::bad_alloc>(err);
   }
-
+  catch (...) {
+    throw std::runtime_error("something mysterious  went wrong in walker thread!");
+  }
+			     
   ++walk_finished_;
   if (BaseClass::writer_ && BaseClass::writer_->isADIOS2())
     BaseClass::writer_->flush();
@@ -651,6 +654,8 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id,
     std::cout << " Done\n";
 
   finalizeWalker(walker, id);
+
+  accum_fingerprints_[id] = accumulator_obj.deviceFingerprint();
 
   Profiler::stop_threading(id);
 

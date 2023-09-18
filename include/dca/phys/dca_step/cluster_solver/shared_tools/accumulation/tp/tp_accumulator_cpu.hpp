@@ -47,6 +47,10 @@ namespace solver {
 namespace accumulator {
 // dca::phys::solver::accumulator::
 
+// ifndef DEBUG_G4_CPU
+// define DEBUG_G4_CPU
+// endif
+
 using dca::util::SignType;
 
 template <class Parameters, DistType DT>
@@ -54,6 +58,8 @@ class TpAccumulator<Parameters, DT, linalg::CPU> : public TpAccumulatorBase<Para
 public:
   using Base = TpAccumulatorBase<Parameters, DT>;
 
+  using Real = typename Parameters::Real;
+  
   using typename Base::NuDmn;
   using typename Base::TpPrecision;
   using typename Base::TpComplex;
@@ -67,22 +73,20 @@ public:
   using typename Base::BDmn;
   using typename Base::SDmn;
   using typename Base::TpGreensFunction;
+  using typename Base::SpGreensFunction;
 
 protected:
   using Base::non_density_density_;
   using Base::n_bands_;
   using Base::extension_index_offset_;
-  using Base::n_pos_frqs_;
   using Base::G4_;
   using Base::channels_;
   using Base::G0_;
   using Base::G0_ptr_;
   using Base::G_;
   using Base::beta_;
-
   using Profiler = typename Parameters::profiler_type;
   using Base::thread_id_;
-
   using Matrix = linalg::Matrix<TpComplex, linalg::CPU>;
 
 public:
@@ -113,6 +117,11 @@ public:
   // Returns the accumulated Green's function.
   const std::vector<TpGreensFunction>& get_G4() const;
 
+#ifndef NDEBUG
+  // Returns the accumulated Green's function.
+  const typename Base::SpGreensFunction& get_G_Debug() const;
+#endif
+
   // FOR TESTING: Returns the accumulated Green's function.
   std::vector<TpGreensFunction>& get_nonconst_G4();
 
@@ -139,17 +148,34 @@ public:
 protected:
   double computeG();
 
+  void computeGActl(SpGreensFunction& G);
+
   void computeGMultiband(int s, int k1, int k2, int w1, int w2);
+
+  using BandBlockView = linalg::MatrixView<TpComplex, linalg::CPU>;
+
+  /** pure function that does the band block G0_kw1 M G0_kw2 matrix multiply
+   *  param[in]       G0_kw1   matrix view G0 for k1 w1
+   *  param[in]       G0_kw2   matrix view G0 for k2 w2
+   *  param[in/out]   G_kkww   matrix view of G k1 k2 w1 w2 updated by function.
+   *  param[out]      G0_M_    workspace for G0_kw1 M product an optimization
+   */
+  static void matrixOperationsGMultiband(const BandBlockView& G0_kw1, const BandBlockView& G0_kw2,
+                                         BandBlockView& G_kkww, Matrix& G0_M_);
 
   void computeGSingleband(int s, int k1, int k2, int w1, int w2);
 
-  void getGMultiband(int s, int k1, int k2, int w1, int w2, Matrix& G, TpComplex beta = 0) const;
+  /** Get a G_a or G_b
+   *  if sign != 0 the incoming value of G is is summed over and into the G_ptr
+   *  This is fairly confusing.
+   */
+  void getGMultiband(int s, int k1, int k2, int w1, int w2, Matrix& G, TpComplex sign = 0) const;
 
   auto getGSingleband(int s, int k1, int k2, int w1, int w2) -> TpComplex const;
 
   template <class Configuration, typename SpScalar>
-  float computeM(const std::array<linalg::Matrix<SpScalar, linalg::CPU>, 2>& M_pair,
-                 const std::array<Configuration, 2>& configs);
+  double computeM(const std::array<linalg::Matrix<SpScalar, linalg::CPU>, 2>& M_pair,
+                  const std::array<Configuration, 2>& configs);
 
   template <typename SignType>
   double updateG4(int channel_index, SignType factor);
@@ -160,14 +186,22 @@ protected:
                              const int k2_b, const int w1_b, const int w2_b, const SpScalar alpha,
                              const bool cross_legs);
 
+  /** Spin difference term.
+   *  by multiply the spin 0 term the sign controls the sign between G_a G_b
+   *  this sign has nothing to do with the phase factor/sign from the sample.
+   */
   template <typename SpScalar, typename SignType>
-  void inline updateG4SpinDifference(TpComplex* G4_ptr, const SignType factor, const int k1_a,
+  void inline updateG4SpinDifference(TpComplex* G4_ptr, const SignType sign, const int k1_a,
                                      const int k2_a, const int w1_a, const int w2_a, const int k1_b,
                                      const int k2_b, const int w1_b, const int w2_b,
-                                     const SpScalar alpha);
+                                     const SpScalar alpha, const bool cross_legs);
 
 protected:
   CachedNdft<TpComplex, RDmn, WTpExtDmn, WTpExtPosDmn, linalg::CPU, non_density_density_> ndft_obj_;
+
+#ifndef NDEBUG
+  typename Base::SpGreensFunction G_debug_;
+#endif
 
 private:
   // work spaces for computeGMultiband.
@@ -182,16 +216,9 @@ TpAccumulator<Parameters, DT, linalg::CPU>::TpAccumulator(
   if constexpr (DT == DistType::BLOCKED) {
     std::cerr << "Blocked distribution is not supported in the CPU accumulator. "
               << "Reverting to no distribution.\n";
-    if (WDmn::dmn_size() < WTpExtDmn::dmn_size())
-      throw(std::logic_error("The number of single particle frequencies is too small."));
-
-    // Reserve storage in advance such that we don't have to copy elements when we fill the vector.
-    // We want to avoid copies because function's copy ctor does not copy the name (and because
-    // copies are expensive).
-    // for (int channel_id = 0; channel_id < channels_.size(); ++channel_id) {
-    //   G4_.emplace_back("G4_" + toString(channels_[channel_id]));
-    // }
   }
+  if (WDmn::dmn_size() < WTpExtDmn::dmn_size())
+    throw(std::logic_error("The number of single particle frequencies is too small."));
 }
 
 template <class Parameters, DistType DT>
@@ -213,6 +240,11 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::accumulate(
 
   gflops += computeM(M_pair, configs);
   gflops += computeG();
+
+#ifndef NDEBUG
+  G_debug_ = G_;
+#endif
+
   for (int channel_index = 0; channel_index < G4_.size(); ++channel_index)
     gflops += updateG4(channel_index, factor);
 
@@ -221,10 +253,10 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::accumulate(
 
 template <class Parameters, DistType DT>
 template <class Configuration, typename SpScalar>
-float TpAccumulator<Parameters, DT, linalg::CPU>::computeM(
+double TpAccumulator<Parameters, DT, linalg::CPU>::computeM(
     const std::array<linalg::Matrix<SpScalar, linalg::CPU>, 2>& M_pair,
     const std::array<Configuration, 2>& configs) {
-  float flops = 0.;
+  double flops = 0.;
 
   func::function<TpComplex, func::dmn_variadic<RDmn, RDmn, BDmn, BDmn, SDmn, WTpExtPosDmn, WTpExtDmn>>
       M_r_r_w_w;
@@ -246,22 +278,31 @@ float TpAccumulator<Parameters, DT, linalg::CPU>::computeM(
 template <class Parameters, DistType DT>
 double TpAccumulator<Parameters, DT, linalg::CPU>::computeG() {
   Profiler prf("ComputeG", "tp-accumulation", __LINE__, thread_id_);
-  for (int w2 = 0; w2 < WTpExtDmn::dmn_size(); ++w2)
-    for (int w1 = 0; w1 < WTpExtPosDmn::dmn_size(); ++w1)
-      for (int k2 = 0; k2 < KDmn::dmn_size(); ++k2)
-        for (int k1 = 0; k1 < KDmn::dmn_size(); ++k1)
-          for (int s = 0; s < 2; ++s)
-            switch (n_bands_) {
-              case 1:
-                computeGSingleband(s, k1, k2, w1, w2);
-                break;
-              default:
-                computeGMultiband(s, k1, k2, w1, w2);
-            }
+  computeGActl(G_);
   //  INTERNAL: the additional flops for w1==w2 are ignored.
   const double flops = 8 * std::pow(n_bands_, 3) * WTpExtPosDmn::dmn_size() *
                        WTpExtDmn::dmn_size() * std::pow(KDmn::dmn_size(), 2) * 2;
   return 1e-9 * flops;
+}
+
+template <class Parameters, DistType DT>
+void TpAccumulator<Parameters, DT, linalg::CPU>::computeGActl(SpGreensFunction& G) {
+  auto domain_sizes = G.getDomainSizes();
+  auto slow_order_it = domain_sizes.rbegin();
+  auto w2_size = *slow_order_it++;
+  auto w1_size = *slow_order_it++;
+  auto k2_size = *slow_order_it++;
+  auto k1_size = *slow_order_it++;
+  auto s_size = *slow_order_it++;
+  for (int w2 = 0; w2 < w2_size; ++w2)
+    for (int w1 = 0; w1 < w1_size; ++w1)
+      for (int k2 = 0; k2 < k2_size; ++k2)
+        for (int k1 = 0; k1 < k1_size; ++k1)
+          for (int s = 0; s < s_size; ++s)
+            if constexpr (n_bands_ > 1)
+              computeGMultiband(s, k1, k2, w1, w2);
+            else
+              computeGSingleband(s, k1, k2, w1, w2);
 }
 
 template <class Parameters, DistType DT>
@@ -276,7 +317,9 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::computeGSingleband(const int s,
   const TpComplex G0_w1 = G0_(0, 0, s, k1, w1);
   const TpComplex G0_w2 = G0_(0, 0, s, k2, w2);
   const TpComplex M_val = G_(0, 0, s, k1, k2, w1, w2);
-
+#ifdef DEBUG_G4_CPU
+  std::cout << M_val << " " << G0_w1 << " " << G0_w2 << " -- ";
+#endif
   // for real G0 this was
   // if (k2 == k1 && w2 == w1 + n_pos_frqs_)
   if (k2 == k1 && w2 == w1)
@@ -294,20 +337,41 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::computeGMultiband(const int s, 
 
   // const linalg::MatrixView<Complex, linalg::CPU> G0_w1(&G0_(0, 0, s, k1, w1 + Base::n_pos_frqs_),
   //                                                      Base::n_bands_, Base::n_bands_);
-  const linalg::MatrixView<TpComplex, linalg::CPU> G0_w1(&G0_(0, 0, s, k1, w1), n_bands_, n_bands_);
-  const linalg::MatrixView<TpComplex, linalg::CPU> G0_w2(&G0_(0, 0, s, k2, w2), n_bands_, n_bands_);
-  linalg::MatrixView<TpComplex, linalg::CPU> M_matrix(&G_(0, 0, s, k1, k2, w1, w2), n_bands_);
+  const BandBlockView G0_w1(&G0_(0, 0, s, k1, w1), n_bands_, n_bands_);
+  const BandBlockView G0_w2(&G0_(0, 0, s, k2, w2), n_bands_, n_bands_);
+  // linalg::Matrix<TpComplex, linalg::CPU> M_matrix_copy(&G_(0, 0, s, k1, k2, w1, w2), n_bands_);
+  BandBlockView M_matrix(&G_(0, 0, s, k1, k2, w1, w2), n_bands_);
 
-  // G(w1, w2) <- -G0(w1) M(w1, w2) G0(w2)
-  linalg::matrixop::gemm(G0_w1, M_matrix, G0_M_);
-  linalg::matrixop::gemm(TpComplex(-1), G0_M_, G0_w2, TpComplex(0), M_matrix);
+  matrixOperationsGMultiband(G0_w1, G0_w2, M_matrix, G0_M_);
 
-  // G(w1, w2) += \delta(w1, w2) \delta(k1,k2) G0(w1)
+    // G(w1, w2) += \delta(w1, w2) \delta(k1,k2) G0(w1)
   if (G0_w1.ptr() == G0_w2.ptr()) {
     for (int b2 = 0; b2 < n_bands_; ++b2)
       for (int b1 = 0; b1 < n_bands_; ++b1)
         M_matrix(b1, b2) += G0_w1(b1, b2) * beta_;
   }
+
+#ifndef NDEBUG
+  for (int b2 = 0; b2 < n_bands_; ++b2)
+    for (int b1 = 0; b1 < n_bands_; ++b1) {
+#ifdef DEBUG_G4_CPU
+      std::cout << M_matrix(b1, b2).real() << ' ' << M_matrix(b1, b2).imag() << ' '
+                << G0_(b1, b2, s, k1, w1).real() << ' ' << G0_(b1, b2, s, k1, w1).imag() << ' '
+                << G0_(b1, b2, s, k1, w1).imag() << ' ' << G0_(b1, b2, s, k2, w2).real()
+                << "  CPU: " << b1 << " " << b2 << " " << s << " " << k1 << " " << k2 << " " << w1
+                << " " << w2 << " " << '\n';
+#endif
+    }
+#endif
+}
+
+template <class Parameters, DistType DT>
+void TpAccumulator<Parameters, DT, linalg::CPU>::matrixOperationsGMultiband(const BandBlockView& G0_kw1, const BandBlockView& G0_kw2, BandBlockView& G_kkww, Matrix& G0_M_) {
+  // G(w1, w2) <- -G0(w1) M(w1, w2) G0(w2)
+  G0_M_.resize(G0_kw1.size());
+  linalg::matrixop::gemm(G0_kw1, G_kkww, G0_M_);
+  linalg::matrixop::gemm(TpComplex(-1), G0_M_, G0_kw2, TpComplex(0), G_kkww);
+
 }
 
 template <class Parameters, DistType DT>
@@ -324,17 +388,19 @@ auto TpAccumulator<Parameters, DT, linalg::CPU>::getGSingleband(const int s, con
 template <class Parameters, DistType DT>
 void TpAccumulator<Parameters, DT, linalg::CPU>::getGMultiband(int s, int k1, int k2, int w1,
                                                                int w2, Matrix& G,
-                                                               const TpComplex beta) const {
-  const int w2_ext = w2 + extension_index_offset_;
+                                                               const TpComplex sign) const {
   const int w1_ext = w1 + extension_index_offset_;
+  const int w2_ext = w2 + extension_index_offset_;
   // Real opt was complicated
   const auto* const G_ptr = &G_(0, 0, s, k1, k2, w1_ext, w2_ext);
   for (int b2 = 0; b2 < n_bands_; ++b2)
     for (int b1 = 0; b1 < n_bands_; ++b1) {
-      G(b1, b2) = beta * G(b1, b2) + G_ptr[b1 + b2 * n_bands_];
-      /* if (std::abs(G(b1,b2).imag()) > 10)  //std::isnan(imag(G_(b1, b2, s, k1, k2, w1_ext, w2_ext)))) */
-      /*   std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << "," << b1 << "," << b2 << ","
-       * << G(b1, b2) << "*G_ptr" << G_ptr->real() << " + " << G_ptr->imag() << "\n"; */
+      G(b1, b2) = sign * G(b1, b2) + G_ptr[b1 + b2 * n_bands_];
+#ifndef NDEBUG
+      // if (std::abs(G(b1, b2).imag()) > 10)  // std::isnan(imag(G_(b1, b2, s, k1, k2, w1_ext, w2_ext))))
+      //   std::cout << w1 << "," << w2 << "," << k1 << "," << k2 << "," << b1 << "," << b2 << ","
+      //             << G(b1, b2) << "*G_ptr" << G_ptr->real() << " + " << G_ptr->imag() << "\n";
+#endif
     }
 }
 
@@ -378,6 +444,11 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
   else
     complex_factor = factor;
 
+#ifndef NDEBUG
+  TpComplex G4_FromSpinDifference{0.0, 0.0};
+  TpComplex G4_DirectDifference{0.0, 0.0};
+#endif
+
   if constexpr (Base::spin_symmetric_) {
     switch (channel) {
       case FourPointType::PARTICLE_HOLE_TRANSVERSE:
@@ -385,6 +456,8 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
         //                  = -1/2 sum_s G(k2+k_ex, k1+k_ex, s) G(k1, k2, -s)
         for (int w_ex_idx = 0; w_ex_idx < exchange_frq.size(); ++w_ex_idx) {
           const int w_ex = exchange_frq[w_ex_idx];
+	  if(w_ex != 0)
+	    std::cout << "cpu w_ex: " << w_ex << '\n';
           for (int k_ex_idx = 0; k_ex_idx < exchange_mom.size(); ++k_ex_idx) {
             const int k_ex = exchange_mom[k_ex_idx];
             for (int w2 = 0; w2 < WTpDmn::dmn_size(); ++w2)
@@ -410,6 +483,8 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
         //                       - (s1 == s2) G(k2+k_ex, k1+k_ex, s1) G(k1, k2, s1)]
         for (int w_ex_idx = 0; w_ex_idx < exchange_frq.size(); ++w_ex_idx) {
           const int w_ex = exchange_frq[w_ex_idx];
+	  if(w_ex != 0)
+	    std::cout << "cpu w_ex: " << w_ex << '\n';
           for (int k_ex_idx = 0; k_ex_idx < exchange_mom.size(); ++k_ex_idx) {
             const int k_ex = exchange_mom[k_ex_idx];
             for (int w2 = 0; w2 < WTpDmn::dmn_size(); ++w2)
@@ -417,20 +492,34 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
                 for (int w1 = 0; w1 < WTpDmn::dmn_size(); ++w1)
                   for (int k1 = 0; k1 < KDmn::dmn_size(); ++k1) {
                     TpComplex* const G4_ptr = &G4(0, 0, 0, 0, k1, w1, k2, w2, k_ex_idx, w_ex_idx);
+#ifndef NDEBUG
+                    TpComplex G4_before = *G4_ptr;
+#endif
                     updateG4SpinDifference(G4_ptr, -1, k1, momentum_sum(k1, k_ex), w1,
                                            w_plus_w_ex(w1, w_ex), momentum_sum(k2, k_ex), k2,
-                                           w_plus_w_ex(w2, w_ex), w2, sign_over_2);
-                    for (int s = 0; s < 2; ++s)
-                      updateG4Atomic(G4_ptr, s, momentum_sum(k2, k_ex), momentum_sum(k1, k_ex),
-                                     w_plus_w_ex(w2, w_ex), w_plus_w_ex(w1, w_ex), s, k1, k2, w1,
-                                     w2, -sign_over_2, true);
-                    /* updateG4Atomic(G4_ptr, s, k1, k2, w1, w2, s, momentum_sum(k2, k_ex), */
-                    /*                momentum_sum(k1, k_ex), w_plus_w_ex(w2, w_ex), */
-                    /*                w_plus_w_ex(w1, w_ex), -sign_over_2, true); */
+                                           w_plus_w_ex(w2, w_ex), w2, sign_over_2, false);
+#ifndef NDEBUG
+                    G4_FromSpinDifference += std::abs(*G4_ptr - G4_before);
+#endif
+                    for (int s = 0; s < 2; ++s) {
+#ifndef NDEBUG
+                      G4_before = *G4_ptr;
+#endif
+                      updateG4Atomic(G4_ptr, s, k1, k2, w1, w2, s, momentum_sum(k2, k_ex),
+                                     momentum_sum(k1, k_ex), w_plus_w_ex(w2, w_ex),
+                                     w_plus_w_ex(w1, w_ex), -sign_over_2, true);
+#ifndef NDEBUG
+                      G4_DirectDifference += std::abs(*G4_ptr - G4_before);
+#endif
+                    }
                   }
           }
         }
         flops += n_loops * (flops_update_spin_diff + 2 * flops_update_atomic);
+#ifndef NDEBUG
+        std::cout << "G4 PHM from spin:" << G4_FromSpinDifference << '\n';
+        std::cout << "G4 PHM from direct:" << G4_DirectDifference << '\n';
+#endif
         break;
 
       case FourPointType::PARTICLE_HOLE_CHARGE:
@@ -558,8 +647,8 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
                                   w_ex_minus_w(w1, w_ex), w_ex_minus_w(w2, w_ex), G_b_);
                     // getGMultiband(0, k2, k1, w2, w1, G_a_);
                     // getGMultiband(0, q_minus_k(k2, k_ex), q_minus_k(k1, k_ex),
-                    //               w_ex_minus_w(w2, w_ex), w_ex_minus_w(w1, w_ex), G_b_);
-                    for (int b4 = 0; b4 < BDmn::dmn_size(); ++b4)
+                    //               w_ex_minus_w(w2, w_ex), w_ex_minus_w(w1, w_ex), G_b_); 
+                   for (int b4 = 0; b4 < BDmn::dmn_size(); ++b4)
                       for (int b3 = 0; b3 < BDmn::dmn_size(); ++b3)
                         for (int b2 = 0; b2 < BDmn::dmn_size(); ++b2)
                           for (int b1 = 0; b1 < BDmn::dmn_size(); ++b1) {
@@ -638,7 +727,7 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
   }
 
   return 1e-9 * flops;
-}
+}  // namespace accumulator
 
 template <class Parameters, DistType DT>
 template <typename SpScalar>
@@ -652,14 +741,19 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::updateG4Atomic(
   //
   // INTERNAL: would use __restrict__ pointer make sense?
   if (n_bands_ == 1) {
-    *G4_ptr += alpha * getGSingleband(s_a, k1_a, k2_a, w1_a, w2_a) *
-               getGSingleband(s_b, k1_b, k2_b, w1_b, w2_b);
+    auto G_a = getGSingleband(s_a, k1_a, k2_a, w1_a, w2_a);
+    auto G_b = getGSingleband(s_b, k1_b, k2_b, w1_b, w2_b);
+    *G4_ptr += alpha * G_a * G_b;
   }
   else {
     getGMultiband(s_a, k1_a, k2_a, w1_a, w2_a, G_a_);
     getGMultiband(s_b, k1_b, k2_b, w1_b, w2_b, G_b_);
 
-    if (!ph_channel)
+    // Assuming 0 = down 1 = up
+    //G_a = G[s_a]
+    //G_b = G[d_b]
+      
+    if (!cross_legs)
       for (int b4 = 0; b4 < n_bands_; ++b4)
         for (int b3 = 0; b3 < n_bands_; ++b3)
           for (int b2 = 0; b2 < n_bands_; ++b2)
@@ -678,7 +772,7 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::updateG4Atomic(
             for (int b1 = 0; b1 < n_bands_; ++b1) {
               TpComplex tcomp_alpha{0.0, 0.0};
               tcomp_alpha += alpha;
-              auto Gprod = G_a_(b3, b1) * G_b_(b2, b4);
+              auto Gprod = G_a_(b1, b4) * G_b_(b2, b3);
               *G4_ptr += tcomp_alpha * Gprod;  // G_a_(b1, b3) * G_b_(b2, b4);
 
               //*G4_ptr += alpha * G_a_(b1, b4) * G_b_(b2, b3);
@@ -691,7 +785,7 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::updateG4Atomic(
 template <class Parameters, DistType DT>
 template <typename SpScalar, typename SignType>
 void TpAccumulator<Parameters, DT, linalg::CPU>::updateG4SpinDifference(
-    TpComplex* G4_ptr, const SignType factor, const int k1_a, const int k2_a, const int w1_a,
+    TpComplex* G4_ptr, const SignType sign, const int k1_a, const int k2_a, const int w1_a,
     const int w2_a, const int k1_b, const int k2_b, const int w1_b, const int w2_b,
     const SpScalar alpha) {
   // This function performs the following update for each band:
@@ -700,35 +794,49 @@ void TpAccumulator<Parameters, DT, linalg::CPU>::updateG4SpinDifference(
   //                                + sign * G(down,k1_a, k2_a, w1_a, w2_a)]
   //                             * [G(up, k1_b, k2_b, w1_b, w2_b)
   //                               + sign * G(down, k1_b, k2_b, w1_b, w2_b)]
+
+  // updateG4SpinDifference(G4_ptr, -1, k1, momentum_sum(k1, k_ex), w1,
+  //                        w_plus_w_ex(w1, w_ex), momentum_sum(k2, k_ex), k2,
+  //                        w_plus_w_ex(w2, w_ex), w2, sign_over_2, false);
+
   if (n_bands_ == 1) {
     *G4_ptr += alpha *
                (getGSingleband(0, k1_a, k2_a, w1_a, w2_a) +
-                static_cast<TpComplex>(factor) * getGSingleband(1, k1_a, k2_a, w1_a, w2_a)) *
+                static_cast<TpComplex>(sign) * getGSingleband(1, k1_a, k2_a, w1_a, w2_a)) *
                (getGSingleband(0, k1_b, k2_b, w1_b, w2_b) +
-                static_cast<TpComplex>(factor) * getGSingleband(1, k1_b, k2_b, w1_b, w2_b));
+                static_cast<TpComplex>(sign) * getGSingleband(1, k1_b, k2_b, w1_b, w2_b));
   }
   else {
+    // So G_a_ and G_b_ are accumulating over both spins for each band combination
     getGMultiband(0, k1_a, k2_a, w1_a, w2_a, G_a_);
-    getGMultiband(1, k1_a, k2_a, w1_a, w2_a, G_a_, factor);
+    getGMultiband(1, k1_a, k2_a, w1_a, w2_a, G_a_, sign);
+   
     getGMultiband(0, k1_b, k2_b, w1_b, w2_b, G_b_);
-    getGMultiband(1, k1_b, k2_b, w1_b, w2_b, G_b_, factor);
-
-    /* if (!cross_legs) */
-    for (int b4 = 0; b4 < n_bands_; ++b4)
-      for (int b3 = 0; b3 < n_bands_; ++b3)
-        for (int b2 = 0; b2 < n_bands_; ++b2)
-          for (int b1 = 0; b1 < n_bands_; ++b1) {
-            *G4_ptr += alpha * G_a_(b2, b1) * G_b_(b3, b4);
-            ++G4_ptr;
-          }
-    /* else */
-    /*   for (int b4 = 0; b4 < n_bands_; ++b4) */
-    /*     for (int b3 = 0; b3 < n_bands_; ++b3) */
-    /*       for (int b2 = 0; b2 < n_bands_; ++b2) */
-    /*         for (int b1 = 0; b1 < n_bands_; ++b1) { */
-    /*           *G4_ptr += alpha * G_a_(b1, b4) * G_b_(b2, b3); */
-    /*           ++G4_ptr; */
-    /*         } */
+    getGMultiband(1, k1_b, k2_b, w1_b, w2_b, G_b_, sign);
+    // Assuming 0 = down 1 = up
+    // If sign == 1
+    // G_a_ = G_down(k1_a, k2_a, w1_a, w2_a) + G_up(k1_a, k2_a, w1_a, w2_a)
+    // G_b_ = G_down(k1_b, k2_b, w1_b, w2_b) + G_up(k1_b, k2_b, w1_b, w2_b)
+    // if sign == -1
+    // G_a_ = G_down(k1_a, k2_a, w1_a, w2_a) - G_up(k1_a, k2_a, w1_a, w2_a)
+    // G_b_ = G_down(k1_b, k2_b, w1_b, w2_b) - G_up(k1_b, k2_b, w1_b, w2_b)
+    
+    if (!cross_legs)
+      for (int b4 = 0; b4 < n_bands_; ++b4)
+        for (int b3 = 0; b3 < n_bands_; ++b3)
+          for (int b2 = 0; b2 < n_bands_; ++b2)
+            for (int b1 = 0; b1 < n_bands_; ++b1) {
+              *G4_ptr += alpha * G_a_(b1, b3) * G_b_(b2, b4);
+              ++G4_ptr;
+            }
+    else
+      for (int b4 = 0; b4 < n_bands_; ++b4)
+        for (int b3 = 0; b3 < n_bands_; ++b3)
+          for (int b2 = 0; b2 < n_bands_; ++b2)
+            for (int b1 = 0; b1 < n_bands_; ++b1) {
+              *G4_ptr += alpha * G_a_(b1, b4) * G_b_(b2, b3);
+              ++G4_ptr;
+            }
   }
 }
 
@@ -739,6 +847,14 @@ const std::vector<typename TpAccumulator<Parameters, DT, linalg::CPU>::TpGreensF
     throw std::logic_error("There is no G4 stored in this class.");
   return G4_;
 }
+
+#ifndef NDEBUG
+template <class Parameters, DistType DT>
+const typename TpAccumulator<Parameters, DT, linalg::CPU>::Base::SpGreensFunction& TpAccumulator<
+    Parameters, DT, linalg::CPU>::get_G_Debug() const {
+  return G_debug_;
+}
+#endif
 
 template <class Parameters, DistType DT>
 std::vector<typename TpAccumulator<Parameters, DT, linalg::CPU>::TpGreensFunction>& TpAccumulator<
