@@ -422,33 +422,44 @@ void SymmetrizeSingleParticleFunction<Parameters>::symmetrizeSpecial(
       // if (abs(f(0, 0, 0, 0, ind_0, ind_1) - f(3, 0, 3, 0, ind_0, ind_1)) > 1.0e-5)
       //   std::cout << abs(f(0, 0, 0, 0, ind_0, ind_1) - f(3, 0, 3, 0, ind_0, ind_1)) << "  in
       //   function " << f.get_name() << "\n";
-      Scalar tmpAup = (f(0, 0, 0, 0, ind_0, ind_1) + f(3, 0, 3, 0, ind_0, ind_1)) / 2.;
-      Scalar tmpAdn = (f(1, 0, 1, 0, ind_0, ind_1) + f(2, 0, 2, 0, ind_0, ind_1)) / 2.;
 
-      f(0, 0, 0, 0, ind_0, ind_1) = tmpAup;
-      f(1, 0, 1, 0, ind_0, ind_1) = tmpAdn;
-      f(2, 0, 2, 0, ind_0, ind_1) = tmpAdn;
-      f(3, 0, 3, 0, ind_0, ind_1) = tmpAup;
+      // 
+      // Scalar tmpAup = (f(0, 0, 0, 0, ind_0, ind_1) + f(3, 0, 3, 0, ind_0, ind_1)) / 2.;
+      // Scalar tmpAdn = (f(1, 0, 1, 0, ind_0, ind_1) + f(2, 0, 2, 0, ind_0, ind_1)) / 2.;
 
-      // Also set the inter-orbital AB (non-local) terms to zero for single-site DMFT
+      // f(0, 0, 0, 0, ind_0, ind_1) = tmpAup;
+      // f(1, 0, 1, 0, ind_0, ind_1) = tmpAdn;
+      // f(2, 0, 2, 0, ind_0, ind_1) = tmpAdn;
+      // f(3, 0, 3, 0, ind_0, ind_1) = tmpAup;
+
+      // if cluster size = 1 (DMFT), set the inter-site (non-local) terms to zero
+      // hardcoded for FeSn materials model, which has 3 sites in unit cell, each with 5 orbitals
       if (FDmn0::dmn_size() == 1) {
-        f(0, 0, 1, 0, ind_0, ind_1) = 0;
-        f(1, 0, 0, 0, ind_0, ind_1) = 0;
-        f(2, 0, 3, 0, ind_0, ind_1) = 0;
-        f(3, 0, 2, 0, ind_0, ind_1) = 0;
+            for (int spin=0; spin<2; spin++) {
+              for (int orb1 = 0; orb1 < 5; orb1++) {
+                for (int orb2 = 0; orb2 < 5; orb2++) {
+                  f(orb1, spin, orb2+5, spin, ind_0, ind_1) = 0;
+                  f(orb1+5, spin, orb2, spin, ind_0, ind_1) = 0;
+                  f(orb1, spin, orb2+10, spin, ind_0, ind_1) = 0;
+                  f(orb1+10, spin, orb2, spin, ind_0, ind_1) = 0;
+                  f(orb1+5, spin, orb2+10, spin, ind_0, ind_1) = 0;
+                  f(orb1+10, spin, orb2+5, spin, ind_0, ind_1) = 0;
+                }
+              }
+            }
       }
 
       // Intra-orbital AA, BB , opposite spin (Basis: A,up, B,up, A,db, B,dn)
-      f(0, 0, 2, 0, ind_0, ind_1) = 0;
-      f(2, 0, 0, 0, ind_0, ind_1) = 0;
-      f(1, 0, 3, 0, ind_0, ind_1) = 0;
-      f(3, 0, 1, 0, ind_0, ind_1) = 0;
+      // f(0, 0, 2, 0, ind_0, ind_1) = 0;
+      // f(2, 0, 0, 0, ind_0, ind_1) = 0;
+      // f(1, 0, 3, 0, ind_0, ind_1) = 0;
+      // f(3, 0, 1, 0, ind_0, ind_1) = 0;
 
       // Inter-orbital AB, BA , opposite spin
-      f(0, 0, 3, 0, ind_0, ind_1) = 0;
-      f(3, 0, 0, 0, ind_0, ind_1) = 0;
-      f(1, 0, 2, 0, ind_0, ind_1) = 0;
-      f(2, 0, 1, 0, ind_0, ind_1) = 0;
+      // f(0, 0, 3, 0, ind_0, ind_1) = 0;
+      // f(3, 0, 0, 0, ind_0, ind_1) = 0;
+      // f(1, 0, 2, 0, ind_0, ind_1) = 0;
+      // f(2, 0, 1, 0, ind_0, ind_1) = 0;
     }
   }
 }
