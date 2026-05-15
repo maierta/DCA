@@ -467,8 +467,12 @@ if(DCA_FIX_BROKEN_MPICH)
   add_compile_definitions(DCA_FIX_BROKEN_MPICH)
 endif()
 
-if ((DCA_LATTICE STREQUAL "material") AND (NOT DCA_POINT_GROUP STREQUAL "no_symmetry<3>"))
-  message( FATAL_ERROR "material lattice must be used with the no_symmetry<3> pointgroup")
+if ((DCA_LATTICE STREQUAL "material_NiO" OR DCA_LATTICE STREQUAL "material_FeSn" OR
+     DCA_LATTICE STREQUAL "material_Cs2ClCo4") AND
+    (NOT DCA_POINT_GROUP STREQUAL "no_symmetry<3>"))
+  message(FATAL_ERROR
+    "${DCA_LATTICE} must be used with DCA_POINT_GROUP=no_symmetry<3>."
+  )
 endif()
 ################################################################################
 # Generate applications' config files.
