@@ -518,7 +518,7 @@ CtauxWalker<device_t, Parameters, Data>::CtauxWalker(Parameters& parameters_ref,
   }
 }
 
-  
+
 template <dca::linalg::DeviceType device_t, class Parameters, class Data>
 void CtauxWalker<device_t, Parameters, Data>::printSummary() const {
   // std::defaultfloat is only supported by GCC 5 or later.
@@ -940,11 +940,11 @@ int CtauxWalker<device_t, Parameters, Data>::generateDelayedSpinsAbortAtBennett(
   assert(single_spin_updates_proposed ==
          currently_proposed_creations_ + currently_proposed_annihilations_ + num_statics);
 
-// #ifndef NDEBUG
-//   if (single_spin_updates_proposed >= max_num_delayed_spins) {
-//     std::cout << "single_spin_updates_proposed = " << single_spin_updates_proposed << "  max_num_delayed_spins = " << max_num_delayed_spins << '\n';
-//   }
-// #endif
+#ifndef NDEBUG
+  if (single_spin_updates_proposed > max_num_delayed_spins) {
+    std::cout << "single_spin_updates_proposed = " << single_spin_updates_proposed << "  max_num_delayed_spins = " << max_num_delayed_spins << '\n';
+  }
+#endif
 
   return single_spin_updates_proposed;
 }
@@ -1403,7 +1403,7 @@ void CtauxWalker<device_t, Parameters, Data>::add_delayed_spin(int& delayed_inde
 #ifndef NDEBUG
       isDebugTestMinMax(false, true, ratio_HS_field_DN, Gamma_index_HS_field_DN, Gamma_up_CPU, Gamma_up_diag_max, Gamma_up_diag_min, trace_depth);
 #endif
- 
+
       Gamma_up_size += 1;
     }
     else {
@@ -1459,7 +1459,7 @@ void CtauxWalker<device_t, Parameters, Data>::add_delayed_spin(int& delayed_inde
 	std::cerr << "Gamma_index_HS_field_UP = " << Gamma_index_HS_field_UP << "  Gamma_dn_size = " << Gamma_dn_size << '\n';
       }
 #endif
- 
+
       ratio_HS_field_UP = ctaux_tools.solve_Gamma_blocked(Gamma_index_HS_field_UP, Gamma_dn_CPU,
                                                           exp_delta_V_HS_field_UP,
                                                           Gamma_dn_diag_max, Gamma_dn_diag_min);

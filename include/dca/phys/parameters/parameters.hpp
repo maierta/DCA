@@ -18,10 +18,14 @@
 
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+#include "dca/io/json/json_reader.hpp"
 
 // its expected that dca::config::McOptions will be provided in some manner before parameters.hpp is
 // included
+#include "dca/phys/parameters/model_section_check.hpp"
 #include "dca/phys/parameters/num_traits.hpp"
 #include "dca/function/domains/dmn_0.hpp"
 #include "dca/phys/parameters/analysis_parameters.hpp"
@@ -280,7 +284,14 @@ void Parameters<Concurrency, Threading, Profiler, Model, RandomNumberGenerator, 
     Reader read_obj;
     read_obj.open_file(filename);
     this->readWrite(read_obj);
+    // Detect model-section input mistakes while the parsed tree is still live (before close_file).
+    // Only the JSON reader tracks which sections were read; HDF5 as input is realistically 
+    // machine-generated, so the access check is not implemented for that path 
+    if constexpr (std::is_same_v<Reader, dca::io::JSONReader>) {
+      checkModelSections(read_obj.topLevelGroupAccess(), filename);
+    }
     read_obj.close_file();
+    OutputParameters::validate();
   }
 }
 

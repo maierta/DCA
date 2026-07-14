@@ -401,10 +401,15 @@ void Matrix<ScalarType, device_name, ALLOC>::resize(std::pair<int, int> new_size
     // This is slow but still thinking about what to do here, the legacy behavior is fine if
     // we're just overwriting the new sections but not if its assumed they are 0, not all client
     // code is clear about this.
-    if constexpr (device_name == linalg::DeviceType::CPU)
-      for (int i = size_.first; i < new_size.first; ++i)
-        for (int j = size_.second; j < new_size.second; ++j)
-          *(data_ + i * new_size.second + j) = 0;
+    if constexpr (device_name == linalg::DeviceType::CPU) {
+      const int ld = leadingDimension();
+      for (int j = 0; j < new_size.second; ++j)
+        for (int i = size_.first; i < new_size.first; ++i)
+          data_[i + j * ld] = 0;
+      for (int j = size_.second; j < new_size.second; ++j)
+        for (int i = 0; i < size_.first; ++i)
+          data_[i + j * ld] = 0;
+    }
     size_ = new_size;
   }
 #endif

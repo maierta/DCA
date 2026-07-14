@@ -35,6 +35,10 @@ endif()
 set(SANE_DEV_BUILD true)
 
 ################################################################################
+# Preserve RPATH in installed binaries so they can find shared libraries.
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+################################################################################
 # Include CMake scripts from cmake directory.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

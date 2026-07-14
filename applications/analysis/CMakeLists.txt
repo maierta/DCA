@@ -10,6 +10,8 @@ if (DCA_BUILD_ANALYSIS)
 
     target_link_libraries(main_analysis PUBLIC signals ${DCA_LIBS} simplex_gm_rule)
 
+  install(TARGETS main_analysis RUNTIME DESTINATION bin)
+
   message("DCA_MODEL_IS_MATERIAL_LATTICE ${DCA_MODEL_IS_MATERIAL_LATTICE}")
   if (DCA_LATTICE STREQUAL "square")
     #new development of exanded q chi_q_omega
@@ -23,6 +25,7 @@ if (DCA_BUILD_ANALYSIS)
 
     target_link_libraries(chi_q_omega PUBLIC signals ${DCA_LIBS} simplex_gm_rule)
 
+    install(TARGETS chi_q_omega RUNTIME DESTINATION bin)
   endif()
 
 endif()

@@ -641,7 +641,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id,
   catch (...) {
     throw std::runtime_error("something mysterious  went wrong in walker thread!");
   }
-			     
+
   ++walk_finished_;
   if (BaseClass::writer_ && BaseClass::writer_->isADIOS2())
     BaseClass::writer_->flush();

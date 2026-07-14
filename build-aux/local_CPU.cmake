@@ -22,8 +22,13 @@ set(HDF5_ROOT "/opt/homebrew/Cellar/hdf5/2.1.1/" CACHE PATH "Path to HDF5 instal
 # FFTW
 # set(FFTW_INCLUDE_DIR "/usr/local/Cellar/fftw/3.3.10/include" CACHE PATH "Path to fftw3.h.")
 # set(FFTW_LIBRARY "/usr/local/Cellar/fftw/3.3.10/lib/libfftw3.a" CACHE FILEPATH "Path to FFTW3 library.")
+<<<<<<< HEAD
 set(FFTW_INCLUDE_DIR "/opt/homebrew/Cellar/fftw/3.3.10_3/include" CACHE PATH "Path to fftw3.h.")
 set(FFTW_LIBRARY "/opt/homebrew/Cellar/fftw/3.3.10_3/lib/libfftw3.a" CACHE FILEPATH "Path to FFTW3 library.")
+=======
+set(FFTW_INCLUDE_DIR "/opt/homebrew/Cellar/fftw/3.3.11/include" CACHE PATH "Path to fftw3.h.")
+set(FFTW_LIBRARY "/opt/homebrew/Cellar/fftw/3.3.11/lib/libfftw3.a" CACHE FILEPATH "Path to FFTW3 library.")
+>>>>>>> upstream/master
 
 mark_as_advanced(gtest_DIR SPRNG_DIR HDF5_ROOT)
 

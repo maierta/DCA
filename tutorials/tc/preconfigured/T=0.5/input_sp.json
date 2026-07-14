@@ -62,8 +62,9 @@
         "measurements": 100000,
 
         "threaded-solver": {
-            "walkers": 3,
-            "accumulators": 5
+            "walkers": 4,
+            "accumulators": 4,
+            "shared-walk-and-accumulation-thread": true
         }
     },
 
@@ -71,7 +72,7 @@
         "expansion-parameter-K": 1.,
         "initial-configuration-size": 16,
         "initial-matrix-size": 16,
-        "max-submatrix-size": 16,
+        "max-submatrix-size": 256,
         "neglect-Bennett-updates": false,
         "additional-time-measurements": false
     }

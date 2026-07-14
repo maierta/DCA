@@ -9,4 +9,6 @@ if (DCA_BUILD_DCA)
   endif()
   
   target_link_libraries(main_dca PUBLIC FFTW::Double signals ${DCA_LIBS} dca_io)
+
+  install(TARGETS main_dca RUNTIME DESTINATION bin)
 endif()

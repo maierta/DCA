@@ -9,4 +9,6 @@ if (DCA_BUILD_CLUSTER_SOLVER_CHECK)
     dca_gpu_runtime_link(cluster_solver_check)
     dca_gpu_blas_link(cluster_solver_check)
   endif()
+
+  install(TARGETS cluster_solver_check RUNTIME DESTINATION bin)
 endif()

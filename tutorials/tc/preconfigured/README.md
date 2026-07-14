@@ -1,5 +1,5 @@
 This directory contains ready-to-use input files and jobs scripts for the [T<sub>c</sub> tutorial](https://github.com/CompFUSE/DCA/wiki/Tutorial:-Tc).
-The files are preconfigured to run the example with a single process (no MPI) using the threaded Monte Carlo solver with 3 walkers and 5 accumulators.
+The files are preconfigured to run the example with a single process (no MPI) using the threaded Monte Carlo solver with 1 walker and 1 accumulator per MPI rank.
 The total number of measurements is 100 000.
 
 The temperature steps are given by
