@@ -120,15 +120,30 @@ else()
 endif()
 
 # Lattice type
-set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | square | triangular |
-    Kagome | Plaquette | hund | twoband_Cu | threeband | Rashba_Hubbard | Moire_Hubbard | FeAs | material_NiO | material_FeSn | material_Cs2ClCo4 | La3Ni2O7_bilayer")
+set(DCA_LATTICE "square" CACHE STRING "Lattice type, options are: bilayer | periodic_anderson | periodic_anderson_3d | square | triangular |
+    Kagome | Plaquette | hund | twoband_Cu | threeband | Rashba_Hubbard | Moire_Hubbard | FeAs | material_NiO | material_FeSn | La3Ni2O7_bilayer")
 set_property(CACHE DCA_LATTICE PROPERTY STRINGS bilayer square triangular Kagome Plaquette hund twoband_Cu threeband
-	     Rashba_Hubbard Moire_Hubbard FeAs material_NiO material_FeSn material_Cs2ClCo4 La3Ni2O7_bilayer)
+             Rashba_Hubbard Moire_Hubbard FeAs material_NiO material_FeSn La3Ni2O7_bilayer periodic_anderson
+             periodic_anderson_3d)
 
 if (DCA_LATTICE STREQUAL "bilayer")
   set(DCA_LATTICE_TYPE dca::phys::models::bilayer_lattice<PointGroup>)
   set(DCA_LATTICE_INCLUDE
     "dca/phys/models/analytic_hamiltonians/bilayer_lattice.hpp")
+
+elseif (DCA_LATTICE STREQUAL "periodic_anderson")
+  set(DCA_LATTICE_TYPE dca::phys::models::PeriodicAndersonModel<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+    "dca/phys/models/analytic_hamiltonians/periodic_anderson_model.hpp")
+
+elseif (DCA_LATTICE STREQUAL "periodic_anderson_3d")
+  if (NOT DCA_POINT_GROUP STREQUAL "no_symmetry<3>")
+    message(FATAL_ERROR
+      "The periodic_anderson_3d lattice requires DCA_POINT_GROUP=no_symmetry<3>.")
+  endif()
+  set(DCA_LATTICE_TYPE dca::phys::models::PeriodicAndersonModel3D<PointGroup>)
+  set(DCA_LATTICE_INCLUDE
+    "dca/phys/models/analytic_hamiltonians/periodic_anderson_model_3d.hpp")
 
 elseif (DCA_LATTICE STREQUAL "La3Ni2O7_bilayer")
   set(DCA_LATTICE_TYPE dca::phys::models::La3Ni2O7_bilayer<PointGroup>)
@@ -214,7 +229,7 @@ elseif (DCA_LATTICE STREQUAL "material_Cs2ClCo4")
   set(DCA_MODEL_IS_MATERIAL_LATTICE ON CACHE BOOL "is the model a material lattice")
 
 else()
-	message(FATAL_ERROR "Please set DCA_LATTICE to a valid option: bilayer | La3Ni2O7_bilayer | square | triangular | Kagome | hund | twoband_Cu | threeband | Rashba_Hubbard | Moire_Hubbard | FeAs | material_NiO | material_FeSn | material_Cs2ClCo4.")
+  message(FATAL_ERROR "Please set DCA_LATTICE to a valid option: bilayer | periodic_anderson | periodic_anderson_3d | La3Ni2O7_bilayer | square | triangular | Kagome | hund | twoband_Cu | threeband | Rashba_Hubbard | Moire_Hubbard | FeAs | material_NiO | material_FeSn.")
 endif()
 
 # Model type

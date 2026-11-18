@@ -10,6 +10,16 @@ dca_add_gtest(bilayer_lattice_test
   INCLUDE_DIRS ${FFTW_INCLUDE_DIR}
   LIBS function function_transform ${LAPACK_LIBRARIES} ${DCA_GPU_LIBS} ${UTIL_LIBS})
 
+dca_add_gtest(periodic_anderson_model_test
+  GTEST_MAIN
+  INCLUDE_DIRS ${FFTW_INCLUDE_DIR}
+  LIBS function function_transform json ${LAPACK_LIBRARIES} ${DCA_GPU_LIBS} ${UTIL_LIBS})
+
+dca_add_gtest(periodic_anderson_model_3d_test
+  GTEST_MAIN
+  INCLUDE_DIRS ${FFTW_INCLUDE_DIR}
+  LIBS function function_transform json ${LAPACK_LIBRARIES} ${DCA_GPU_LIBS} ${UTIL_LIBS})
+
 dca_add_gtest(square_lattice_test
   GTEST_MAIN
   INCLUDE_DIRS ${FFTW_INCLUDE_DIR}

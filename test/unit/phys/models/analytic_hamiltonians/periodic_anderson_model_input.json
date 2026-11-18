@@ -1,0 +1,9 @@
+{
+    "periodic-Anderson-model": {
+        "t": 1.25,
+        "epsilon-f": -2.5,
+        "V": 0.75,
+        "V-prime": 0.25,
+        "U": 6.0
+    }
+}

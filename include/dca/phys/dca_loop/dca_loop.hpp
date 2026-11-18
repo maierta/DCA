@@ -262,6 +262,7 @@ void DcaLoop<ParametersType, DcaDataType, MCIntegratorType, DIST>::execute() {
       if (output_file_ && (output_file_->isADIOS2() || output_file_->isHDF5())) {
         if (parameters.dump_every_iteration()) {
           if (concurrency.id() == concurrency.first()) {
+            monte_carlo_integrator_.write(*output_file_);
             // This normally gets done in finalize before the dump.
             perform_cluster_mapping_self_energy();
             MOMS.compute_Sigma_bands();

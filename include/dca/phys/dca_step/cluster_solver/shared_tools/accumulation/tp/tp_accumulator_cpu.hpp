@@ -236,10 +236,12 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::accumulate(
     const std::array<Configuration, 2>& configs, const SignType<SpScalar> factor) {
   Profiler profiler("accumulate", "tp-accumulation", __LINE__, thread_id_);
   double gflops(0.);
-  if (!(configs[0].size() + configs[1].size()))  // empty config
-    return gflops;
-
-  gflops += computeM(M_pair, configs);
+  if (configs[0].size() == 0 && configs[1].size() == 0) {
+    // An empty configuration has M = 0 but still contributes the G0 * G0 bubble to G4.
+    G_ = TpComplex(0., 0.);
+  } else {
+    gflops += computeM(M_pair, configs);
+  }
   gflops += computeG();
 
 #ifndef NDEBUG
@@ -461,7 +463,7 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
         for (int w_ex_idx = 0; w_ex_idx < exchange_frq.size(); ++w_ex_idx) {
           const int w_ex = exchange_frq[w_ex_idx];
           if (w_ex != 0)
-            std::cout << "cpu w_ex: " << w_ex << '\n';
+            // std::cout << "cpu w_ex: " << w_ex << '\n';
           for (int k_ex_idx = 0; k_ex_idx < exchange_mom.size(); ++k_ex_idx) {
             const int k_ex = exchange_mom[k_ex_idx];
             for (int w2 = 0; w2 < WTpDmn::dmn_size(); ++w2)
@@ -501,7 +503,7 @@ double TpAccumulator<Parameters, DT, linalg::CPU>::updateG4(const int channel_id
         for (int w_ex_idx = 0; w_ex_idx < exchange_frq.size(); ++w_ex_idx) {
           const int w_ex = exchange_frq[w_ex_idx];
           if (w_ex != 0)
-            std::cout << "cpu w_ex: " << w_ex << '\n';
+            // std::cout << "cpu w_ex: " << w_ex << '\n';
           for (int k_ex_idx = 0; k_ex_idx < exchange_mom.size(); ++k_ex_idx) {
             const int k_ex = exchange_mom[k_ex_idx];
             for (int w2 = 0; w2 < WTpDmn::dmn_size(); ++w2)

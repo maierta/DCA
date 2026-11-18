@@ -686,19 +686,21 @@ void TpEqualTimeAccumulator<Parameters, Data>::accumulate_G_r_t(Scalar factor) {
 }
 
 /*!
- *   <S_z> = (n_up-1/2)*(n_dn-1/2)
+ *   <m^2> = <(n_up-n_dn)^2> = <n_up+n_dn-2*n_up*n_dn>
  */
 template <class Parameters, class Data>
 void TpEqualTimeAccumulator<Parameters, Data>::accumulate_moments(Scalar factor) {
   for (int b_ind = 0; b_ind < b::dmn_size(); b_ind++) {
     for (int r_i = 0; r_i < r_dmn_t::dmn_size(); r_i++) {
       for (int t_ind = 0; t_ind < t_VERTEX::dmn_size(); t_ind++) {
-        int i = b_r_t_dmn(b_ind, r_i, t_ind);
-        int j = i;
+        // Match the orbital-site-time ordering in initialize_my_configuration().
+        const int i = t_ind + t_VERTEX::dmn_size() * (r_i + r_dmn_t::dmn_size() * b_ind);
 
-        auto charge_val = G_r_t_up(i, j) * G_r_t_dn(i, j);  // Real occupancy = <n_d*n_u>
-        auto magnetic_val = 1. - 2. * G_r_t_up(i, j) *
-                                     G_r_t_dn(i, j);  // <m^2> = 1-2*<n_d*n_u> (T. Paiva, PRB 2001)
+        // The diagonal Green's function is n_sigma - 1 at equal time.
+        const auto n_up = 1. + G_r_t_up(i, i);
+        const auto n_dn = 1. + G_r_t_dn(i, i);
+        const auto charge_val = n_up * n_dn;
+        const auto magnetic_val = n_up + n_dn - 2. * charge_val;
 
         if (std::abs(std::imag(charge_val)) > 100 * std::numeric_limits<Real>::epsilon() * 100) {
           throw(std::logic_error("Imaginary charge"));

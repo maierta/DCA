@@ -34,6 +34,8 @@
 #include "dca/phys/models/analytic_hamiltonians/hund_lattice.hpp"
 #include "dca/phys/models/analytic_hamiltonians/rashba_hubbard.hpp"
 #include "dca/phys/models/analytic_hamiltonians/Moire_Hubbard.hpp"
+#include "dca/phys/models/analytic_hamiltonians/periodic_anderson_model.hpp"
+#include "dca/phys/models/analytic_hamiltonians/periodic_anderson_model_3d.hpp"
 #include "dca/phys/models/analytic_hamiltonians/twoband_Cu.hpp"
 #include "dca/phys/models/analytic_hamiltonians/Kagome_hubbard.hpp"
 #include "dca/phys/models/tight_binding_model.hpp"
@@ -90,6 +92,10 @@ struct HasCustomSpin<T, decltype(std::declval<T>().SPIN, void())> : std::true_ty
 
 // Specialization for Moire-Hubbard model
 #include "model_parameters_moire_hubbard.inc"
+
+// Specialization for the periodic Anderson model
+#include "model_parameters_periodic_anderson.inc"
+#include "model_parameters_periodic_anderson_3d.inc"
 
 #include "model_parameters_singleband_chain.inc"
 #include "model_parameters_twoband_chain.inc"

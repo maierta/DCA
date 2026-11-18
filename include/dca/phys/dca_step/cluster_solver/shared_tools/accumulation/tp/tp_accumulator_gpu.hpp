@@ -329,11 +329,14 @@ double TpAccumulator<Parameters, DT, linalg::GPU>::accumulate(
   if (!BaseGpu::initialized_)
     throw(std::logic_error("The accumulator is not ready to measure."));
 
-  if (!(configs[0].size() + configs[0].size()))  // empty config
-    return flop;
-
   // Base::phase_ = factor;
-  flop += BaseGpu::computeM(M, configs);
+  if (configs[0].size() == 0 && configs[1].size() == 0) {
+    // An empty configuration has M = 0 but still contributes the G0 * G0 bubble to G4.
+    for (int s = 0; s < 2; ++s)
+      G_[s].setToZero(queues_[BaseGpu::n_ndft_queues_ == 1 ? 0 : s]);
+  } else {
+    flop += BaseGpu::computeM(M, configs);
+  }
 
   computeG();
 
